@@ -118,7 +118,7 @@ function nodequeue_page_form($node) {
   $role_args = array_fill(0, count($roles), '%d');
 
   if ($user->uid != 1) {
-    $roles_join = "LEFT JOIN {nodequeue_roles} nr ON nr.qid = nq.qid ";
+    $roles_join = "INNER JOIN {nodequeue_roles} nr ON nr.qid = nq.qid ";
     $roles_where = "AND nr.rid IN (". implode(',', $role_args) .") ";
   }
 
@@ -128,7 +128,7 @@ function nodequeue_page_form($node) {
     "INNER JOIN {nodequeue_types} nt ON nt.qid = nq.qid " .
     "LEFT JOIN {nodequeue_nodes} nqn ON nqn.qid = nq.qid " . $roles_join .
     "WHERE nt.type = '%s' " . $roles_where .
-    "GROUP BY nq.qid  ORDER BY nq.title", 'nq', 'qid'), array_merge(array($node->type), $roles));
+    "GROUP BY nq.qid  ORDER BY nq.title", 'nq', 'qid'), $node->type);
 
   $form = array();
   while ($queue = db_fetch_object($result)) {
@@ -434,22 +434,19 @@ function nodequeue_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
  */
 function nodequeue_node_access($type) {
   global $user;
-
-  // Sorry killes, this has to be a LEFT join for uid 1 checking to work.
-  $sql = 'SELECT nq.qid FROM {nodequeue_queue} nq LEFT JOIN {nodequeue_roles} nr ON nr.qid = nq.qid INNER JOIN {nodequeue_types} nt ON nt.qid = nq.qid ';
-
   // superuser always has access.
-  if ($user->uid == 1) {
-    $sql .= "WHERE nt.type = '%s'";
-    $result = db_query($sql, $type);
-  }
-  else {
+  if ($user->uid != 1) {
+    $roles_join = "INNER JOIN {nodequeue_roles} nr ON nr.qid = nq.qid ";
     $roles = array_keys($user->roles) + array(DRUPAL_AUTHENTICATED_RID);
     $role_args = array_fill(0, count($roles), '%d');
 
-    $sql .= "WHERE nr.rid IN (". implode(',', $role_args) .") AND nt.type = '%s'";
-    $result = db_query($sql, array_merge($roles, array($type)));
+    $roles_where .= "AND nr.rid IN (". implode(',', $role_args) .")";
   }
+
+  $sql = 'SELECT nq.qid FROM {nodequeue_queue} nq ' .
+    'INNER JOIN {nodequeue_types} nt ON nt.qid = nq.qid ' . $roles_join .
+    "WHERE nt.type = '%s' " . $roles_where;
+  $result = db_query($sql, $type);
 
   return db_num_rows($result);
 }
