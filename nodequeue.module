@@ -63,7 +63,7 @@ function nodequeue_menu($may_cache) {
 		$arg1 = (int) arg(1);
     if ($user && arg(0) == 'node' && is_numeric($arg1) && $arg1 > 0 && ($access = user_access('manipulate queues'))) {
       $node = node_load($arg1);
-//      if (nodequeue_node_access($node->type)) {
+      if (nodequeue_node_access($node->type)) {
         $items[] = array(
           'path' => 'node/' . $arg1 . '/nodequeue',
           'title' => t('nodequeue'),
@@ -73,7 +73,7 @@ function nodequeue_menu($may_cache) {
           'type' => MENU_LOCAL_TASK,
           'weight' => 5
         );
-//      }
+      }
     }
   }
   return $items;
