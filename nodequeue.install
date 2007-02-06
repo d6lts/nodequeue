@@ -9,7 +9,9 @@ function nodequeue_install() {
         db_query("CREATE TABLE if not exists {nodequeue_queue} (
           qid int(10) unsigned NOT NULL PRIMARY KEY,
           title varchar(255) NOT NULL,
-          size int(3) unsigned default '0'
+          size int(3) unsigned default '0',
+          link varchar(255),
+          link_remove varchar(255)
         )");
 
         db_query("CREATE TABLE if not exists {nodequeue_roles} (
@@ -34,7 +36,9 @@ function nodequeue_install() {
         db_query("CREATE TABLE {nodequeue_queue} (
           qid integer unsigned NOT NULL PRIMARY KEY,
           title varchar(255) NOT NULL,
-          size integer unsigned default '0'
+          size integer unsigned default '0',
+          link varchar(255),
+          link_remove varchar(255)
         )");
 
         db_query("CREATE TABLE {nodequeue_roles} (
