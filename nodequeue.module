@@ -876,6 +876,12 @@ function nodequeue_views_tables() {
         'operator' => 'views_handler_operator_andor',
         'help' => t('Filter the view to a specific Node Queue.'),
       ),
+      "position" => array(
+        'name' => "NodeQueue: Queue Position",
+        'field' => 'position',
+        'operator' => 'views_handler_operator_gtlt',
+        'help' => t('Filter by where in the queue an item is.'),
+      ),
     ),
     "sorts" => array(
       "position" => array(
@@ -911,6 +917,77 @@ function nodequeue_views_arguments() {
   return $arguments;
 }
 
+function nodequeue_views_default_views() {
+  $result = db_query("SELECT * FROM {nodequeue_queue}");
+  while ($queue = db_fetch_object($result)) {
+    $view = new stdClass();
+    $view->name = "nodequeue_$queue->qid";
+    $view->disabled = TRUE;
+    $view->description = t('View node queue ') . check_plain($queue->title);
+    $view->access = array();
+    $view->view_args_php = '';
+    $view->page = TRUE;
+    $view->page_title = check_plain($queue->title);
+    $view->page_header = '';
+    $view->page_header_format = '1';
+    $view->page_footer = '';
+    $view->page_footer_format = '1';
+    $view->page_empty = '';
+    $view->page_empty_format = '1';
+    $view->page_type = 'teaser';
+    $view->url = 'nodequeue/' . $queue->qid;
+    $view->use_pager = TRUE;
+    $view->nodes_per_page = '10';
+    $view->block = TRUE;
+    $view->block_title = check_plain($queue->title);
+    $view->block_header = '';
+    $view->block_header_format = '1';
+    $view->block_footer = '';
+    $view->block_footer_format = '1';
+    $view->block_empty = '';
+    $view->block_empty_format = '1';
+    $view->block_type = 'list';
+    $view->nodes_per_block = '5';
+    $view->block_more = TRUE;
+    $view->block_use_page_header = FALSE;
+    $view->block_use_page_footer = FALSE;
+    $view->block_use_page_empty = FALSE;
+    $view->sort = array (
+      array (
+        'tablename' => 'nodequeue_nodes',
+        'field' => 'position',
+        'sortorder' => 'ASC',
+        'options' => '',
+      ),
+    );
+    $view->argument = array (
+    );
+    $view->field = array (
+      array (
+        'tablename' => 'node',
+        'field' => 'title',
+        'label' => '',
+        'handler' => 'views_handler_field_nodelink',
+        'options' => 'link',
+      ),
+    );
+    $view->filter = array (
+      array (
+        'tablename' => 'nodequeue_nodes',
+        'field' => 'qid',
+        'operator' => 'OR',
+        'options' => '',
+        'value' => array($queue->qid),
+      ),
+    );
+    $view->exposed_filter = array (
+    );
+    $view->requires = array('nodequeue_nodes', 'node');
+    $views[$view->name] = $view;
+  }
+  return $views;
+}
+
 function nodequeue_handler_queuelist() {
   $result = db_query("SELECT * FROM {nodequeue_queue} ORDER BY title");
   while ($queue = db_fetch_object($result)) {
@@ -929,10 +1006,13 @@ function nodequeue_handler_arg_qid($op, &$query, $argtype, $arg = '') {
       $fieldinfo['field'] = "nodequeue_queue.title";
       return $fieldinfo;
       break;
+    case 'sort':
+      $query->add_orderby('nodequeue_queue', 'title', $argtype);
+      break;
     case 'filter':
       $qid = intval($arg);
       $query->ensure_table('nodequeue_queue', true);
-      $query->add_where("nodequeue_queue.qid = $qid");
+      $query->add_where("nodequeue_queue.qid = %d", $qid);
       break;
     case 'link':
       return l($query->title, "$arg/" . intval($query->qid));
