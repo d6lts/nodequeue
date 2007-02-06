@@ -15,7 +15,7 @@ function nodequeue_help($section = "admin/help#nodequeue") {
 }
 
 function nodequeue_perm() {
-  return array ('manipulate queues', 'administer nodequeue');
+  return array ('manipulate queues', 'administer nodequeue', 'manipulate all queues');
 }
 
 function nodequeue_menu($may_cache) {
@@ -115,7 +115,7 @@ function nodequeue_page_form($node) {
   $roles = array_keys($user->roles) + array(DRUPAL_AUTHENTICATED_RID);
   $role_args = array_fill(0, count($roles), '%d');
 
-  if ($user->uid != 1) {
+  if (!user_access('manipulate all queues')) {
     $roles_join = "INNER JOIN {nodequeue_roles} nr ON nr.qid = nq.qid ";
     $roles_where = "AND nr.rid IN (". implode(',', $role_args) .") ";
   }
@@ -235,11 +235,29 @@ function nodequeue_queue_form($queue = array()) {
 
   $form['size'] = array(
     '#type' => 'textfield',
-    '#title' => t('Queue Size'),
+    '#title' => t('Queue size'),
     '#default_value' => $queue->size,
     '#size' => 2,
     '#maxlength' => 2,
     '#description' => t('The maximum number of nodes will appear in the queue. Enter 0 for no limit'),
+  );
+
+  $form['link'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Link "add to queue" text'),
+    '#default_value' => $queue->link,
+    '#size' => 40,
+    '#maxlength' => 40,
+    '#description' => t('If you want a link to add a node to a queue in the "links" section (next to "add new comment"), enter the text here. If left blank no link will be given; note that enabling this feature for any queue will cause an extra query to be run every time a node is loaded.'),
+  );
+
+  $form['link_remove'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Link "remove from queue" text'),
+    '#default_value' => $queue->link_remove,
+    '#size' => 40,
+    '#maxlength' => 40,
+    '#description' => t('Enter the text for the corresponding link to remove a node from a queue. This may be blank (in which case no link will appear) but a remove link will only appear if link, above, is set.'),
   );
 
   $result = db_query("SELECT * FROM {role} ORDER BY name");
@@ -266,7 +284,6 @@ function nodequeue_queue_form($queue = array()) {
     '#options' => $nodes,
     '#description' => t('Check each node type that can be added to this queue.'),
   );
-
 
   $form[] = array(
     '#type' => 'submit',
@@ -312,7 +329,7 @@ function nodequeue_queue_form_submit($formid, $form) {
   }
   $queue->types = $types;
 
-  _nodequeue_save($queue);
+  nodequeue_save($queue);
   if ($queue->size) // 0 means "don't care"
     _nodequeue_check_queuesize($queue);
   drupal_set_message(t('The queue has been updated.'));
@@ -515,6 +532,40 @@ function nodequeue_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
   }
 }
 
+function nodequeue_link($type, $node, $teaser) {
+  if ($type == 'node' && variable_get('nodequeue_links', FALSE) && user_access('manipulate queues')) {
+    if (!user_access('manipulate all queues')) {
+      $roles_join = "INNER JOIN {nodequeue_roles} nr ON nr.qid = nq.qid ";
+      $roles = array_keys($user->roles) + array(DRUPAL_AUTHENTICATED_RID);
+      $role_args = array_fill(0, count($roles), '%d');
+
+      $roles_where .= "AND nr.rid IN (". implode(',', $role_args) .")";
+    }
+
+    $sql = 'SELECT nq.qid, nq.link, nq.link_remove, nqn.position FROM {nodequeue_queue} nq ' .
+      'INNER JOIN {nodequeue_types} nt ON nt.qid = nq.qid ' . $roles_join .
+      'LEFT JOIN {nodequeue_nodes} nqn ON nqn.qid = nq.qid AND nqn.nid = %d ' .
+      "WHERE nt.type = '%s' " . $roles_where;
+    $result = db_query($sql, $node->nid, $node->type);
+    $links = array();
+    while ($queue = db_fetch_object($result)) {
+      if (!$queue->position) {
+        $links[] = array(
+          'title' => $queue->link, 
+          'href' => "node/$node->nid/nodequeue/add/$queue->qid", 
+          'query' => drupal_get_destination());
+      }
+      else if ($queue->link_remove) {
+        $links[] = array(
+          'title' => $queue->link_remove, 
+          'href' => "node/$node->nid/nodequeue/remove/$queue->qid", 
+          'query' => drupal_get_destination());
+      }
+    }
+  }
+  return $links;
+}
+
 // --------------------------------------------------------------------------
 // Database manipulation functions
 
@@ -525,7 +576,7 @@ function nodequeue_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
 function nodequeue_node_access($type) {
   global $user;
   // superuser always has access.
-  if ($user->uid != 1) {
+  if (!user_access('manipulate all queues')) {
     $roles_join = "INNER JOIN {nodequeue_roles} nr ON nr.qid = nq.qid ";
     $roles = array_keys($user->roles) + array(DRUPAL_AUTHENTICATED_RID);
     $role_args = array_fill(0, count($roles), '%d');
@@ -542,6 +593,11 @@ function nodequeue_node_access($type) {
 }
 
 function _nodequeue_load($qid, $nodes = false) {
+  // passthrough for compatibility
+  return nodequeue_load($qid, $nodes);
+}
+
+function nodequeue_load($qid, $nodes = false) {
   $queue = db_fetch_object(db_query("SELECT * FROM {nodequeue_queue} WHERE qid = %d", $qid));
   if ($queue) {
     $result = db_query("SELECT rid FROM {nodequeue_roles} WHERE qid = %d", $qid);
@@ -565,18 +621,24 @@ function _nodequeue_load($qid, $nodes = false) {
 }
 
 function _nodequeue_save($queue, $nodes = false) {
+  // passthrough for compatibility with older versions
+  return nodequeue_save($queue, $nodes);
+}
+
+function nodequeue_save($queue, $nodes = false) {
   $queue->size = intval($queue->size);
   $title = db_escape_string($queue->title);
   if (!$queue->qid) {
     $queue->qid = db_next_id("{nodequeue_queue}_qid");
-    db_query("INSERT INTO {nodequeue_queue} (qid, title, size) VALUES (%d, '%s', %d)", $queue->qid, $title, $queue->size);
+    db_query("INSERT INTO {nodequeue_queue} (qid, title, size, link, link_remove) VALUES (%d, '%s', %d)", $queue->qid, $title, $queue->size, $queue->link, $queue->link_remove);
     if (module_exists('views_invalidate_cache')) {
       views_invalidate_cache();
     }
   }
   else {
     $queue->qid = intval($queue->qid);
-    db_query("UPDATE {nodequeue_queue} set size = %d, title = '%s' WHERE qid = %d", $queue->size, $title, $queue->qid);
+    drupal_set_message($queue->qid);
+    db_query("UPDATE {nodequeue_queue} set size = %d, title = '%s', link = '%s', link_remove = '%s' WHERE qid = %d", $queue->size, $title, $queue->link, $queue->link_remove, $queue->qid);
     db_query("DELETE FROM {nodequeue_roles} WHERE qid = %d", $queue->qid);
     db_query("DELETE FROM {nodequeue_types} WHERE qid = %d", $queue->qid);
     if ($nodes) {
@@ -584,16 +646,17 @@ function _nodequeue_save($queue, $nodes = false) {
     }
   }
 
-
-  if (is_array($queue->roles))
+  if (is_array($queue->roles)) {
     foreach($queue->roles as $rid)
       db_query("INSERT INTO {nodequeue_roles} (qid, rid) VALUES (%d, %d)", $queue->qid, $rid);
+  }
 
-  if (is_array($queue->types))
+  if (is_array($queue->types)) {
     foreach($queue->types as $type)
     db_query("INSERT INTO {nodequeue_types} (qid, type) VALUES (%d, '%s')", $queue->qid, $type);
+  }
 
-  if ($nodes && is_array($queue->nodes))
+  if ($nodes && is_array($queue->nodes)) {
     foreach($queue->nodes as $nid) {
       db_query("INSERT INTO {nodequeue_roles} (qid, nid, position) VALUES (%d, %d, %d)", $queue->qid, $nid, ++$position);
 
@@ -601,11 +664,24 @@ function _nodequeue_save($queue, $nodes = false) {
       if ($position >= $queue->size)
         break;
     }
+  }
 
+  // set our global that tells us whether or not we need to activate hook_link
+  if (db_result(db_query("SELECT COUNT(*) FROM {nodequeue_queue} WHERE link != ''"))) {
+    variable_set('nodequeue_links', TRUE);
+  }
+  else {
+    variable_set('nodequeue_links', FALSE);
+  }
   return $queue->qid;
 }
 
 function _nodequeue_delete($qid) {
+  // passthrough
+  return nodequeue_delete($qid);
+}
+
+function nodequeue_delete($qid) {
   db_query("DELETE FROM {nodequeue_queue} WHERE qid = %d", $qid);
   db_query("DELETE FROM {nodequeue_roles} WHERE qid = %d", $qid);
   db_query("DELETE FROM {nodequeue_types} WHERE qid = %d", $qid);
@@ -795,6 +871,9 @@ function action_nodequeue_remove($op, $edit = array(), $node) {
 // --------------------------------------------------------------------------
 // External queue fetching
 
+/**
+ * in general it's preferable to use Views for this functionality.
+ */
 function nodequeue_node_titles($qid, $title = '', $backward = true, $from = 0, $count = 0) {
   $orderby = ($backward ? "DESC" : "ASC");
   $sql = db_rewrite_sql("SELECT n.nid, n.title FROM {node} n LEFT JOIN {nodequeue_nodes} nn ON n.nid = nn.nid WHERE nn.qid = %d AND n.status = 1 ORDER BY nn.position $orderby");

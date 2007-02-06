@@ -78,3 +78,9 @@ function nodequeue_update_1() {
     db_query("CREATE SEQUENCE nodequeue_queue_qid_seq INCREMENT 1 START 1");
   }
 }
+
+function nodequeue_update_2() {
+  $ret = array();
+  $ret[] = update_sql("ALTER TABLE {nodequeue_queue} ADD COLUMN link VARCHAR(40) DEFAULT '' NOT NULL");
+  return $ret;
+}
