@@ -587,7 +587,7 @@ function nodequeue_node_access($type) {
   $sql = 'SELECT nq.qid FROM {nodequeue_queue} nq ' .
     'INNER JOIN {nodequeue_types} nt ON nt.qid = nq.qid ' . $roles_join .
     "WHERE nt.type = '%s' " . $roles_where;
-  $result = db_query($sql, $type);
+  $result = db_query($sql, array_merge($type, (array) $role_args));
 
   return db_num_rows($result);
 }
