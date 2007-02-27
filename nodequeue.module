@@ -116,7 +116,7 @@ function nodequeue_page_form($node) {
   $roles = array();
 
   if (!user_access('manipulate all queues')) {
-    $roles = array_keys($user->roles) + array(DRUPAL_AUTHENTICATED_RID);
+    $roles = array_keys((array) $user->roles) + array(DRUPAL_AUTHENTICATED_RID);
     $role_args = array_fill(0, count($roles), '%d');
     $roles_join = "INNER JOIN {nodequeue_roles} nr ON nr.qid = nq.qid ";
     $roles_where = "AND nr.rid IN (". implode(',', $role_args) .") ";
@@ -540,7 +540,7 @@ function nodequeue_link($type, $node, $teaser) {
     $roles = array();
     if (!user_access('manipulate all queues')) {
       $roles_join = "INNER JOIN {nodequeue_roles} nr ON nr.qid = nq.qid ";
-      $roles = array_keys($user->roles) + array(DRUPAL_AUTHENTICATED_RID);
+      $roles = array_keys((array) $user->roles) + array(DRUPAL_AUTHENTICATED_RID);
       $role_args = array_fill(0, count($roles), '%d');
 
       $roles_where .= "AND nr.rid IN (". implode(',', $role_args) .")";
@@ -587,7 +587,7 @@ function nodequeue_node_access($type) {
   // superuser always has access.
   if (!user_access('manipulate all queues')) {
     $roles_join = "INNER JOIN {nodequeue_roles} nr ON nr.qid = nq.qid ";
-    $roles = array_keys($user->roles) + array(DRUPAL_AUTHENTICATED_RID);
+    $roles = array_keys((array) $user->roles) + array(DRUPAL_AUTHENTICATED_RID);
     $role_args = array_fill(0, count($roles), '%d');
 
     $roles_where .= "AND nr.rid IN (". implode(',', $role_args) .")";
