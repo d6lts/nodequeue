@@ -170,19 +170,21 @@ function nodequeue_page_form($node) {
     $roles_where = "AND nr.rid IN (". implode(',', $role_args) .") ";
   }
 
-  $result = db_query(db_rewrite_sql(
-    "SELECT nq.qid, nq.title, nq.size, COUNT(DISTINCT(nqn.nid)) AS numnodes " .
+  // db_rewrite_sql should not be used here because the queue info needs
+  // to always be correct here.
+  $result = db_query(
+    "SELECT nq.qid, nq.title, nq.size, MAX(nqn.position) AS num_nodes " .
     "FROM {nodequeue_queue} nq " .
     "INNER JOIN {nodequeue_types} nt ON nt.qid = nq.qid " .
     "LEFT JOIN {nodequeue_nodes} nqn ON nqn.qid = nq.qid " . $roles_join .
     "WHERE nt.type = '%s' " . $roles_where .
-    "GROUP BY nq.qid  ORDER BY nq.title", 'nq', 'qid'), array_merge(array($node->type), $roles));
+    "GROUP BY nq.qid  ORDER BY nq.title", 'nq', 'qid'), array_merge(array($node->type), $roles);
 
   $form = array();
   while ($queue = db_fetch_object($result)) {
     $form['title'][$queue->qid] = array('#type' => 'markup', '#value' => $queue->title);
     $form['size'][$queue->qid] = array('#type' => 'markup', '#value' => $queue->size);
-    $form['numnodes'][$queue->qid] = array('#type' => 'markup', '#value' => $queue->numnodes . ($queue->size && $queue->size == $queue->numnodes ? ' '. t('QUEUE FULL') : ''));
+    $form['num_nodes'][$queue->qid] = array('#type' => 'markup', '#value' => $queue->num_nodes . ($queue->size && $queue->size == $queue->num_nodes ? ' '. t('QUEUE FULL') : ''));
 
     $ops = array(l(t('View queue'), "admin/content/nodequeue/$queue->qid/view"));
 
@@ -208,7 +210,7 @@ function theme_nodequeue_page_form($form) {
     $row = array();
     $row[] = drupal_render($form['title'][$key]);
     $row[] = array('data' => drupal_render($form['size'][$key]), 'align' => 'right');
-    $row[] = array('data' => drupal_render($form['numnodes'][$key]), 'align' => 'right');
+    $row[] = array('data' => drupal_render($form['num_nodes'][$key]), 'align' => 'right');
     $row[] = drupal_render($form['operations'][$key]);
     $rows[] = $row;
   }
