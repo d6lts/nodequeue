@@ -4,20 +4,16 @@
 // --------------------------------------------------------------------------
 // Drupal Hooks
 
-function nodequeue_help($section = "admin/help#nodequeue") {
-  switch ($section) {
-    case 'admin/help#nodequeue':
-      $output = t("The nodequeue module enables putting nodes into manual queues.");
-      break;
-  }
-
-  return $output;
-}
-
+/**
+ * Implementation of hook_perm
+ */
 function nodequeue_perm() {
   return array ('manipulate queues', 'administer nodequeue', 'manipulate all queues');
 }
 
+/**
+ * Implementation of hook_menu
+ */
 function nodequeue_menu($may_cache) {
   $items = array();
   global $user;
@@ -29,14 +25,14 @@ function nodequeue_menu($may_cache) {
       'path' => 'admin/content/nodequeue',
       'title' => t('Node queue'),
       'access' => $access,
-      'callback' => 'nodequeue_admin',
+      'callback' => 'nodequeue_admin_page',
       'type' => MENU_NORMAL_ITEM
     );
     $items[] = array(
       'path' => 'admin/content/nodequeue/list',
       'title' => t('List'),
       'access' => $access,
-      'callback' => 'nodequeue_admin',
+      'callback' => 'nodequeue_admin_page',
       'weight' => -1,
       'type' => MENU_DEFAULT_LOCAL_TASK
     );
@@ -44,34 +40,85 @@ function nodequeue_menu($may_cache) {
       'path' => 'admin/content/nodequeue/add',
       'title' => t('Add'),
       'access' => $access,
-      'callback' => 'nodequeue_admin_edit',
-      'callback arguments' => array('add'),
-      'type' => MENU_LOCAL_TASK
-    );
-    $items[] = array(
-      'path' => 'admin/content/nodequeue/delete',
-      'title' => t('Delete'),
-      'access' => $access,
       'callback' => 'drupal_get_form',
-      'callback arguments' => array('nodequeue_admin_delete'),
-      'type' => MENU_CALLBACK
+      'callback arguments' => array('nodequeue_queue_form'),
+      'type' => MENU_LOCAL_TASK
     );
   }
   else {
-		$arg1 = (int) arg(1);
-    if ($user && arg(0) == 'node' && is_numeric($arg1) && $arg1 > 0 && ($access = user_access('manipulate queues'))) {
-      $node = node_load($arg1);
+    if ($user && arg(0) == 'node' && is_numeric(arg(1)) && arg(1) > 0 && ($access = user_access('manipulate queues'))) {
+      $node = node_load(arg(1));
       if (nodequeue_node_access($node->type)) {
         $items[] = array(
-          'path' => 'node/' . $arg1 . '/nodequeue',
+          'path' => 'node/' . arg(1) . '/nodequeue',
           'title' => t('Node queue'),
           'access' => $access,
           'callback' => 'nodequeue_page',
-          'callback arguments' => array($arg1),
+          'callback arguments' => array(arg(1)),
           'type' => MENU_LOCAL_TASK,
           'weight' => 5
         );
       }
+    }
+    if ($access = user_access('administer nodequeue') && 
+        arg(0) == 'admin' && 
+        arg(1) == 'content' && 
+        arg(2) == 'nodequeue' && 
+        is_numeric(arg(3)) && 
+        $queue = nodequeue_load(arg(3))) {
+
+      drupal_set_title("Nodequeue '$queue->title'");
+      $items[] = array(
+        'path' => 'admin/content/nodequeue/' . arg(3),
+        'title' => t('View'),
+        'access' => $access,
+        'callback' => 'nodequeue_admin_view',
+        'callback arguments' => array($queue),
+        'type' => MENU_CALLBACK
+      );
+      $items[] = array(
+        'path' => 'admin/content/nodequeue/' . arg(3) . '/view',
+        'title' => t('View'),
+        'access' => $access,
+        'callback' => 'nodequeue_admin_view',
+        'callback arguments' => array($queue),
+        'weight' => -10,
+        'type' => MENU_DEFAULT_LOCAL_TASK
+      );
+      $items[] = array(
+        'path' => 'admin/content/nodequeue/' . arg(3) . '/edit',
+        'title' => t('Edit'),
+        'access' => $access,
+        'callback' => 'drupal_get_form',
+        'callback arguments' => array('nodequeue_queue_form', $queue),
+        'type' => MENU_LOCAL_TASK
+      );
+      $items[] = array(
+        'path' => 'admin/content/nodequeue/' . arg(3) . '/delete',
+        'title' => t('Delete'),
+        'access' => $access,
+        'callback' => 'drupal_get_form',
+        'callback arguments' => array('nodequeue_admin_delete', $queue),
+        'weight' => 5,
+        'type' => MENU_CALLBACK
+      );
+      $items[] = array(
+        'path' => 'admin/content/nodequeue/' . arg(3) . '/clear',
+        'title' => t('Clear'),
+        'access' => $access,
+        'callback' => 'drupal_get_form',
+        'callback arguments' => array('nodequeue_clear_confirm', $queue),
+        'type' => MENU_CALLBACK
+      );
+      $items[] = array(
+        'path' => 'admin/content/nodequeue/' . arg(3) . '/oper',
+        'title' => t('Operate'),
+        'access' => $access,
+        'callback' => 'nodequeue_admin_operate',
+        'callback arguments' => array($queue),
+        'type' => MENU_CALLBACK
+      );
+
     }
   }
   return $items;
@@ -81,13 +128,15 @@ function nodequeue_menu($may_cache) {
 // Nodequeue Admin pages
 
 /**
- * menu callback
+ * Display the queue page for a node, allowing the user to control
+ * how the node exists in various queues. This controls a couple
+ * of different paths.
  */
 function nodequeue_page($nid, $op = NULL, $qid = NULL) {
   $node = node_load($nid);
   drupal_set_title(check_plain($node->title));
 
-  if(!nodequeue_node_access($node->type)) {
+  if (!nodequeue_node_access($node->type)) {
     return t('No node queue defined for this node type.');
   }
   else {
@@ -104,6 +153,9 @@ function nodequeue_page($nid, $op = NULL, $qid = NULL) {
   }
 }
 
+/**
+ * Display the queue controls for a node.
+ */
 function nodequeue_page_form($node) {
   // Determine which queues are appropriate for this nodetype.
   global $user;
@@ -124,7 +176,7 @@ function nodequeue_page_form($node) {
     "INNER JOIN {nodequeue_types} nt ON nt.qid = nq.qid " .
     "LEFT JOIN {nodequeue_nodes} nqn ON nqn.qid = nq.qid " . $roles_join .
     "WHERE nt.type = '%s' " . $roles_where .
-    "GROUP BY nq.qid  ORDER BY nq.title", 'nq', 'qid'), array($node->type) + $roles);
+    "GROUP BY nq.qid  ORDER BY nq.title", 'nq', 'qid'), array_merge(array($node->type), $roles));
 
   $form = array();
   while ($queue = db_fetch_object($result)) {
@@ -132,7 +184,7 @@ function nodequeue_page_form($node) {
     $form['size'][$queue->qid] = array('#type' => 'markup', '#value' => $queue->size);
     $form['numnodes'][$queue->qid] = array('#type' => 'markup', '#value' => $queue->numnodes . ($queue->size && $queue->size == $queue->numnodes ? ' '. t('QUEUE FULL') : ''));
 
-    $ops = array(l(t('View queue'), "admin/content/nodequeue/view/$queue->qid"));
+    $ops = array(l(t('View queue'), "admin/content/nodequeue/$queue->qid/view"));
 
     if (is_numeric($pos = db_result(db_query("SELECT position FROM {nodequeue_nodes} WHERE nid = %d AND qid = %d", $node->nid, $queue->qid)))) {
       $ops[] = l(t("Remove from queue"), "node/$node->nid/nodequeue/remove/$queue->qid/$pos");
@@ -147,6 +199,9 @@ function nodequeue_page_form($node) {
   return $form;
 }
 
+/**
+ * Theme function for nodequeue_page_form
+ */
 function theme_nodequeue_page_form($form) {
   $header = array(t('Title'), t('Max nodes'), t('In queue'), t('Operation'));
   foreach (element_children($form['title']) as $key) {
@@ -162,14 +217,10 @@ function theme_nodequeue_page_form($form) {
   return $output;
 }
 
-function nodequeue_admin($arg = '', $arg2 = '', $arg3 = '', $arg4 = '') {
-  if ($arg == 'edit') {
-    return nodequeue_admin_edit('edit', $arg2);
-  }
-  if ($arg == 'view') {
-    return nodequeue_admin_view($arg2, $arg3, $arg4);
-  }
-
+/**
+ * Display a list of queues and their status for the administrator.
+ */
+function nodequeue_admin_page() {
   $result = pager_query('SELECT nq.*, COUNT(DISTINCT(nn.nid)) as nodes FROM {nodequeue_queue} nq LEFT JOIN {nodequeue_nodes} nn ON nq.qid = nn.qid GROUP by nq.title', 20, 0, 'SELECT COUNT(q.qid) FROM {nodequeue_queue} q');
 
   if (db_num_rows($result)) {
@@ -181,7 +232,7 @@ function nodequeue_admin($arg = '', $arg2 = '', $arg3 = '', $arg4 = '') {
         $queue->title,
         array('data' => $queue->size),
         array('data' => $queue->nodes),
-        array('data' => implode(' | ', array(l(t('Edit'), "admin/content/nodequeue/edit/$queue->qid"), l(t('View'), "admin/content/nodequeue/view/$queue->qid"), l(t('Delete'), "admin/content/nodequeue/delete/$queue->qid"))))
+        array('data' => implode(' | ', array(l(t('Edit'), "admin/content/nodequeue/$queue->qid/edit"), l(t('View'), "admin/content/nodequeue/$queue->qid/view"), l(t('Delete'), "admin/content/nodequeue/$queue->qid/delete"))))
         );
     }
 
@@ -196,31 +247,13 @@ function nodequeue_admin($arg = '', $arg2 = '', $arg3 = '', $arg4 = '') {
 
 }
 
-//
-// render queue add or edit page, and/or handle results
-//
-function nodequeue_admin_edit($which, $qid = 0) {
-  if ($which == 'edit' && (!is_numeric($qid) || $qid == 0))  {
-    return drupal_access_denied();
+/**
+ * Add or edit a queue.
+ */
+function nodequeue_queue_form($queue = NULL) {
+  if (!$queue) {
+    $queue = new stdClass();
   }
-
-  $output = '';
-
-  if ($which == 'edit') {
-    $node = _nodequeue_load($qid);
-    $output = drupal_get_form('nodequeue_queue_form', $node);
-  }
-  else {
-    $output = drupal_get_form('nodequeue_queue_form');
-  }
-
-  return $output;
-}
-
-//
-// display add/edit queue form
-//
-function nodequeue_queue_form($queue = array()) {
 
   $form['title'] = array(
     '#type' => 'textfield',
@@ -306,9 +339,12 @@ function nodequeue_queue_form($queue = array()) {
   return $form;
 }
 
+/**
+ * Submit function for the nodequeue_queue form.
+ */
 function nodequeue_queue_form_submit($formid, $form) {
   if ($_POST['op'] == t('Delete')) {
-    return drupal_goto("admin/content/nodequeue/delete/$form[qid]");
+    return drupal_goto("admin/content/nodequeue/$form[qid]/delete");
   }
 
   $queue = (object) $form;
@@ -334,12 +370,10 @@ function nodequeue_queue_form_submit($formid, $form) {
   drupal_goto('admin/content/nodequeue');
 }
 
-function nodequeue_admin_delete($qid) {
-  $queue = _nodequeue_load($qid);
-
-  if (!$queue)
-    return drupal_goto('admin/content/nodequeue');
-
+/**
+ * Confirm form to delete a queue
+ */
+function nodequeue_admin_delete($queue) {
   $form['qid'] = array('#type' => 'value', '#value' => $queue->qid);
   return confirm_form($form,
     t('Are you sure you want to delete "%title"?', array('%title' => $queue->title)),
@@ -349,51 +383,46 @@ function nodequeue_admin_delete($qid) {
   );
 }
 
+/**
+ * Submit function for nodequeue delete
+ */
 function nodequeue_admin_delete_submit($formid, $form) {
   if ($form['confirm']) {
-    _nodequeue_delete($form['qid']);
+    nodequeue_delete($form['qid']);
     drupal_set_message("The queue has been deleted.");
-    drupal_goto('admin/content/nodequeue');
   }
+  return 'admin/content/nodequeue';
 }
 
-// View a node queue and move items up or down.
-function nodequeue_admin_view($qid, $op, $pos) {
-  $qid = intval($qid);
-  $queue = _nodequeue_load($qid);
-  $pos = intval($pos);
+/**
+ * Page callback to operate on a queue, moving items up or down if 
+ * javascript is disabled.
+ */
+function nodequeue_admin_operate($queue, $op = NULL, $pos = NULL) {
+  switch ($op) {
+    case 'up':
+      nodequeue_queue_up($queue, $pos);
+      break;
+    case 'front':
+      nodequeue_queue_front($queue, $pos);
+      break;
+    case 'down':
+      nodequeue_queue_down($queue, $pos);
+      break;
+    case 'back':
+      nodequeue_queue_back($queue, $pos);
+    case 'remove':
+      _nodequeue_queue_remove($queue, $pos);
+  }
+  return drupal_goto("admin/content/nodequeue/$qid/view");
+}
 
-  if ($op == 'up') {
-    nodequeue_queue_up($queue, $pos);
-    return drupal_goto("admin/content/nodequeue/view/$qid");
-  }
-  if ($op == 'front') {
-    nodequeue_queue_front($queue, $pos);
-    return drupal_goto("admin/content/nodequeue/view/$qid");
-  }
-  if ($op == 'down') {
-    nodequeue_queue_down($queue, $pos);
-    return drupal_goto("admin/content/nodequeue/view/$qid");
-  }
-  if ($op == 'back') {
-    nodequeue_queue_back($queue, $pos);
-    return drupal_goto("admin/content/nodequeue/view/$qid");
-  }
-  if ($op == 'remove') {
-    _nodequeue_queue_remove($queue, $pos);
-    return drupal_goto("admin/content/nodequeue/view/$qid");
-  }
-  if ($op == 'clear') {
-    $form['qid'] = array('#type' => 'value', '#value' => $queue->qid);
-    return drupal_get_form('nodequeue_clear_confirm', $queue); confirm_form('nodequeue_clear_confirm', $form,
-      t('Clearing queue "%s" is irreversible. You sure?', array('%s' => $queue->title)),
-      $_GET['destination'] ? $_GET['destination'] : "admin/content/nodequeue/$qid/clear",
-      t('This action cannot be undone.'),
-      t('Clear Queue'), t('Cancel')
-    );
-  }
+/**
+ * Page callback to view a queue.
+ */
+function nodequeue_admin_view($queue) {
+  $qid = $queue->qid;
 
-  drupal_set_title("Nodequeue '$queue->title'");
   $output = '';
 
   $output = '<p class="nodequeue-js-hide" style="display: none;">';
@@ -413,35 +442,35 @@ function nodequeue_admin_view($qid, $op, $pos) {
     while ($node = db_fetch_object($result)) {
       $buttons = l(
         theme('image', drupal_get_path('module', 'nodequeue') .'/go-up.png', t('Move up')),
-        "admin/content/nodequeue/view/$qid/up/$node->position", 
+        "admin/content/nodequeue/$qid/oper/up/$node->position", 
         array(
           'title' => t('Move up'),
           'class' => 'nodequeue-move-up',
         ), NULL, NULL, FALSE, TRUE);
       $buttons .= l(
         theme('image', drupal_get_path('module', 'nodequeue') .'/go-down.png', t('Move down')),
-        "admin/content/nodequeue/view/$qid/down/$node->position", 
+        "admin/content/nodequeue/$qid/oper/down/$node->position", 
         array(
           'title' => t('Move down'),
           'class' => 'nodequeue-move-down',
         ), NULL, NULL, FALSE, TRUE);
       $buttons .= l(
         theme('image', drupal_get_path('module', 'nodequeue') .'/go-top.png', t('Move to front')), 
-        "admin/content/nodequeue/view/$qid/front/$node->position", 
+        "admin/content/nodequeue/$qid/oper/front/$node->position", 
         array(
           'title' => t('Move to front'),
           'class' => 'nodequeue-move-front',
         ), NULL, NULL, FALSE, TRUE);
       $buttons .= l(
         theme('image', drupal_get_path('module', 'nodequeue') .'/go-bottom.png', t('Move to back')),
-        "admin/content/nodequeue/view/$qid/back/$node->position", 
+        "admin/content/nodequeue/$qid/oper/back/$node->position", 
         array(
           'title' => t('Move to back'),
           'class' => 'nodequeue-move-back',
         ), NULL, NULL, FALSE, TRUE);
       $buttons .= l(
         theme('image', drupal_get_path('module', 'nodequeue') .'/user-trash.png', t('Remove from queue')),
-        "admin/content/nodequeue/view/$qid/remove/$node->position", 
+        "admin/content/nodequeue/$qid/oper/remove/$node->position", 
         array(
           'title' => t('Remove from queue'),
           'class' => 'nodequeue-remove',
@@ -453,11 +482,10 @@ function nodequeue_admin_view($qid, $op, $pos) {
       );
       $nids[] = $node->nid;
     }
-    $output .= theme('table', array("Node", "Author", "Date", "Operation"), $list, array('width' => '100%', 'id' => 'nodequeue-table'));
-// Pager won't work with the javascript thingy!
-//    $output .= theme('pager', NULL, 25);
+    $header = array(t('Node'), t('Author'), t('Date'), t('Operation'));
+    $output .= theme('table', $header, $list, array('width' => '100%', 'id' => 'nodequeue-table'));
+
     $output .= drupal_get_form('nodequeue_queue_admin', $qid, $nids);
-//    $output .= "<p>" . l(t("Empty this queue"), "admin/content/nodequeue/view/$qid/clear") . "</p>";
     drupal_add_js(drupal_get_path('module', 'nodequeue') .'/nodequeue.js');
   }
   else {
@@ -467,6 +495,9 @@ function nodequeue_admin_view($qid, $op, $pos) {
   return $output;
 }
 
+/**
+ * Form used for administrating a queue
+ */
 function nodequeue_queue_admin($qid, $nids) {
   $form['qid'] = array(
     '#type' => 'value',
@@ -493,7 +524,14 @@ function nodequeue_queue_admin($qid, $nids) {
   return $form;
 }
 
+/**
+ * Submit function for nodequeue_queue_admin
+ */
 function nodequeue_queue_admin_submit($form_id, $form_values) {
+  if ($form_values['op'] == t('Clear queue')) {
+    return 'admin/content/nodequeue/' . $form_values['qid'] . '/clear';
+  }
+
   db_query("DELETE FROM {nodequeue_nodes} WHERE qid = %d", $form_values['qid']);
   if ($form_values['op'] == t('Save') && $form_values['order']) {
     $counter = 1;
@@ -504,20 +542,26 @@ function nodequeue_queue_admin_submit($form_id, $form_values) {
   drupal_set_message(t('The queue has been updated'));
 }
 
+/**
+ * Confirm form to clear a queue.
+ */
 function nodequeue_clear_confirm($queue) {
-  $form['qid'] = array('#type' => 'value', '#value' => $queue->qid);
+  $form['qid'] = array('#type' => 'value', '#value' => $qid);
   return confirm_form($form,
     t('Clearing queue "%s" is irreversible. You sure?', array('%s' => $queue->title)),
-    $_GET['destination'] ? $_GET['destination'] : "admin/content/nodequeue/view/$queue->qid",
+    $_GET['destination'] ? $_GET['destination'] : "admin/content/nodequeue/$queue->qid/view",
     t('This action cannot be undone.'),
     t('Clear Queue'), t('Cancel')
   );
 }
 
+/**
+ * Submit function for nodequeue clear confirm
+ */
 function nodequeue_clear_confirm_submit($formid, $form) {
   if ($form['confirm']) {
     nodequeue_queue_clear($form['qid']);
-    return drupal_goto("admin/content/nodequeue/view/$form[qid]");
+    return drupal_goto("admin/content/nodequeue/$form[qid]/view");
   }
 }
 
@@ -556,7 +600,7 @@ function nodequeue_link($type, $node, $teaser) {
       'LEFT JOIN {nodequeue_nodes} nqn ON nqn.qid = nq.qid AND nqn.nid = %d ' .
       "WHERE nt.type = '%s' " . $roles_where;
 
-    $result = db_query($sql, array($node->nid, $node->type) + $roles);
+    $result = db_query($sql, array_merge(array($node->nid, $node->type), $roles));
     $links = array();
     while ($queue = db_fetch_object($result)) {
       if (!$queue->position) {
@@ -601,7 +645,7 @@ function nodequeue_node_access($type) {
   $sql = 'SELECT nq.qid FROM {nodequeue_queue} nq ' .
     'INNER JOIN {nodequeue_types} nt ON nt.qid = nq.qid ' . $roles_join .
     "WHERE nt.type = '%s' " . $roles_where;
-  $result = db_query($sql, array($type) + $roles);
+  $result = db_query($sql, array_merge(array($type), $roles));
 
   return db_num_rows($result);
 }
