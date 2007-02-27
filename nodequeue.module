@@ -924,8 +924,7 @@ function nodequeue_fetch_front($qid, $teaser = true, $links = true) {
 }
 
 function nodequeue_fetch_back($qid, $teaser = true, $links = true) {
-  $size = db_result(db_query("SELECT MAX(position) FROM {nodequeue_nodes} WHERE qid = %d", $qid));
-  return nodequeue_nodes($qid, false, $teaser, $links, $size - 1, 1);
+  return nodequeue_nodes($qid, true, $teaser, $links, 0, 1);
 }
 
 function nodequeue_fetch_random($qid, $teaser = true, $links = true) {
