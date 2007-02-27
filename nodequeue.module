@@ -91,17 +91,12 @@ function nodequeue_page($nid, $op = NULL, $qid = NULL) {
     return t('No node queue defined for this node type.');
   }
   else {
-    $qid = (int) $qid;
-
     if ($op && $qid) {
-      $queue = _nodequeue_load($qid);
       if ($op == 'add') {
-        _nodequeue_queue_add($queue, $nid);
+        nodequeue_queue_add($qid, $nid);
       }
       elseif ($op == 'remove') {
-        if ($pos = nodequeue_queue_position($qid, $nid)) {
-          _nodequeue_queue_remove($queue, $pos);
-        }
+        nodequeue_queue_remove_node($qid, $nid);
       }
       drupal_goto("node/$nid/nodequeue");
     }
@@ -947,8 +942,9 @@ function nodequeue_queue_remove($qid, $start, $end = 0) {
 }
 
 function nodequeue_queue_remove_node($qid, $nid) {
-  $pos = db_result(db_query("SELECT position FROM {nodequeue_nodes} WHERE qid = %d AND nid = %d", $qid, $nid));
-  nodequeue_queue_remove($qid, $pos);
+  if ($pos = nodequeue_queue_position($qid, $nid)) {
+    nodequeue_queue_remove($qid, $pos);
+  }
 }
 
 // ---------------------------------------------------------------------------
