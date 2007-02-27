@@ -112,10 +112,12 @@ function nodequeue_page_form($node) {
   // Determine which queues are appropriate for this nodetype.
   global $user;
 
-  $roles = array_keys($user->roles) + array(DRUPAL_AUTHENTICATED_RID);
-  $role_args = array_fill(0, count($roles), '%d');
+  $roles_where = $roles_join = '';
+  $roles = array();
 
   if (!user_access('manipulate all queues')) {
+    $roles = array_keys($user->roles) + array(DRUPAL_AUTHENTICATED_RID);
+    $role_args = array_fill(0, count($roles), '%d');
     $roles_join = "INNER JOIN {nodequeue_roles} nr ON nr.qid = nq.qid ";
     $roles_where = "AND nr.rid IN (". implode(',', $role_args) .") ";
   }
@@ -126,7 +128,7 @@ function nodequeue_page_form($node) {
     "INNER JOIN {nodequeue_types} nt ON nt.qid = nq.qid " .
     "LEFT JOIN {nodequeue_nodes} nqn ON nqn.qid = nq.qid " . $roles_join .
     "WHERE nt.type = '%s' " . $roles_where .
-    "GROUP BY nq.qid  ORDER BY nq.title", 'nq', 'qid'), $node->type);
+    "GROUP BY nq.qid  ORDER BY nq.title", 'nq', 'qid'), array($node->type) + $roles);
 
   $form = array();
   while ($queue = db_fetch_object($result)) {
@@ -495,7 +497,7 @@ function nodequeue_queue_admin($qid, $nids) {
   return $form;
 }
 
-function nodequeue_queue_admin_submit($form_id, $form_values, $form) {
+function nodequeue_queue_admin_submit($form_id, $form_values) {
   db_query("DELETE FROM {nodequeue_nodes} WHERE qid = %d", $form_values['qid']);
   if ($form_values['op'] == t('Save') && $form_values['order']) {
     $counter = 1;
@@ -534,6 +536,8 @@ function nodequeue_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
 
 function nodequeue_link($type, $node, $teaser) {
   if ($type == 'node' && variable_get('nodequeue_links', FALSE) && user_access('manipulate queues')) {
+    $roles_join = $roles_where = '';
+    $roles = array();
     if (!user_access('manipulate all queues')) {
       $roles_join = "INNER JOIN {nodequeue_roles} nr ON nr.qid = nq.qid ";
       $roles = array_keys($user->roles) + array(DRUPAL_AUTHENTICATED_RID);
@@ -546,7 +550,8 @@ function nodequeue_link($type, $node, $teaser) {
       'INNER JOIN {nodequeue_types} nt ON nt.qid = nq.qid ' . $roles_join .
       'LEFT JOIN {nodequeue_nodes} nqn ON nqn.qid = nq.qid AND nqn.nid = %d ' .
       "WHERE nt.type = '%s' " . $roles_where;
-    $result = db_query($sql, $node->nid, $node->type);
+
+    $result = db_query($sql, $node->nid, array($node->type) + $roles);
     $links = array();
     while ($queue = db_fetch_object($result)) {
       if (!$queue->position) {
@@ -575,6 +580,10 @@ function nodequeue_link($type, $node, $teaser) {
  */
 function nodequeue_node_access($type) {
   global $user;
+
+  $roles_join = $roles_where = '';
+  $roles = array();
+  
   // superuser always has access.
   if (!user_access('manipulate all queues')) {
     $roles_join = "INNER JOIN {nodequeue_roles} nr ON nr.qid = nq.qid ";
@@ -587,7 +596,7 @@ function nodequeue_node_access($type) {
   $sql = 'SELECT nq.qid FROM {nodequeue_queue} nq ' .
     'INNER JOIN {nodequeue_types} nt ON nt.qid = nq.qid ' . $roles_join .
     "WHERE nt.type = '%s' " . $roles_where;
-  $result = db_query($sql, array_merge($type, (array) $role_args));
+  $result = db_query($sql, array($type) + $roles);
 
   return db_num_rows($result);
 }
