@@ -178,7 +178,7 @@ function nodequeue_page_form($node) {
     "INNER JOIN {nodequeue_types} nt ON nt.qid = nq.qid " .
     "LEFT JOIN {nodequeue_nodes} nqn ON nqn.qid = nq.qid " . $roles_join .
     "WHERE nt.type = '%s' " . $roles_where .
-    "GROUP BY nq.qid  ORDER BY nq.title", 'nq', 'qid'), array_merge(array($node->type), $roles);
+    "GROUP BY nq.qid  ORDER BY nq.title", 'nq', 'qid', array_merge(array($node->type), $roles));
 
   $form = array();
   while ($queue = db_fetch_object($result)) {
