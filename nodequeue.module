@@ -83,7 +83,7 @@ function nodequeue_menu($may_cache) {
 /**
  * menu callback
  */
-function nodequeue_page($nid) {
+function nodequeue_page($nid, $op = NULL, $qid = NULL) {
   $node = node_load($nid);
   drupal_set_title(check_plain($node->title));
 
@@ -91,8 +91,7 @@ function nodequeue_page($nid) {
     return t('No node queue defined for this node type.');
   }
   else {
-    $op = (string) arg(3);
-    $qid = (int) arg(4);
+    $qid = (int) $qid;
 
     if ($op && $qid) {
       $queue = _nodequeue_load($qid);
@@ -100,7 +99,9 @@ function nodequeue_page($nid) {
         _nodequeue_queue_add($queue, $nid);
       }
       elseif ($op == 'remove') {
-        _nodequeue_queue_remove($queue, $pos);
+        if ($pos = nodequeue_queue_position($qid, $nid)) {
+          _nodequeue_queue_remove($queue, $pos);
+        }
       }
       drupal_goto("node/$nid/nodequeue");
     }
@@ -551,7 +552,7 @@ function nodequeue_link($type, $node, $teaser) {
       'LEFT JOIN {nodequeue_nodes} nqn ON nqn.qid = nq.qid AND nqn.nid = %d ' .
       "WHERE nt.type = '%s' " . $roles_where;
 
-    $result = db_query($sql, $node->nid, array($node->type) + $roles);
+    $result = db_query($sql, array($node->nid, $node->type) + $roles);
     $links = array();
     while ($queue = db_fetch_object($result)) {
       if (!$queue->position) {
@@ -646,7 +647,6 @@ function nodequeue_save($queue, $nodes = false) {
   }
   else {
     $queue->qid = intval($queue->qid);
-    drupal_set_message($queue->qid);
     db_query("UPDATE {nodequeue_queue} set size = %d, title = '%s', link = '%s', link_remove = '%s' WHERE qid = %d", $queue->size, $title, $queue->link, $queue->link_remove, $queue->qid);
     db_query("DELETE FROM {nodequeue_roles} WHERE qid = %d", $queue->qid);
     db_query("DELETE FROM {nodequeue_types} WHERE qid = %d", $queue->qid);
@@ -779,6 +779,13 @@ function _nodequeue_check_queuesize(&$queue, $size = FALSE) {
   if ($queue->count > $size) {
     _nodequeue_queue_remove($queue, 1, $queue->count - $size);
   }
+}
+
+/**
+ * Get the position of a node in a queue, or 0 if not found.
+ */
+function nodequeue_queue_position($qid, $nid) {
+  return db_result(db_query("SELECT position FROM {nodequeue_nodes} WHERE qid = %d AND nid = %d", $qid, $nid));
 }
 
 // --------------------------------------------------------------------------
