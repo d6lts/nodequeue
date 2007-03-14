@@ -548,7 +548,7 @@ function nodequeue_queue_admin_submit($form_id, $form_values) {
  * Confirm form to clear a queue.
  */
 function nodequeue_clear_confirm($queue) {
-  $form['qid'] = array('#type' => 'value', '#value' => $qid);
+  $form['qid'] = array('#type' => 'value', '#value' => $queue->qid);
   return confirm_form($form,
     t('Clearing queue "%s" is irreversible. You sure?', array('%s' => $queue->title)),
     $_GET['destination'] ? $_GET['destination'] : "admin/content/nodequeue/$queue->qid/view",

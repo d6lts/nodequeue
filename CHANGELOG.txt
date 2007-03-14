@@ -9,3 +9,4 @@ Nodequeue-5.x-1.2
   o new ability to add nodequeue links directly to a node
   o fixed counting problem with node access
   o #123851: (by njivy) query had too many args
+  o #125422: (by njivy) clear queue confirm form did not work
