@@ -434,10 +434,14 @@ function nodequeue_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
  */
 function nodequeue_node_access($type) {
   global $user;
+
+  $roles_join = $roles_where = '';
+  $roles = array();
+  
   // superuser always has access.
   if ($user->uid != 1) {
     $roles_join = "INNER JOIN {nodequeue_roles} nr ON nr.qid = nq.qid ";
-    $roles = array_keys($user->roles) + array(DRUPAL_AUTHENTICATED_RID);
+//    $roles = array_keys((array) $user->roles) + array(DRUPAL_AUTHENTICATED_RID);
     $role_args = array_fill(0, count($roles), '%d');
 
     $roles_where .= "AND nr.rid IN (". implode(',', $role_args) .")";
@@ -446,7 +450,7 @@ function nodequeue_node_access($type) {
   $sql = 'SELECT nq.qid FROM {nodequeue_queue} nq ' .
     'INNER JOIN {nodequeue_types} nt ON nt.qid = nq.qid ' . $roles_join .
     "WHERE nt.type = '%s' " . $roles_where;
-  $result = db_query($sql, $type);
+  $result = db_query($sql, array_merge(array($type), $roles));
 
   return db_num_rows($result);
 }
