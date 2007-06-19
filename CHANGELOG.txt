@@ -1,6 +1,4 @@
 Nodequeue-5.x-1.2-beta
-  o #108078: fix documentation for nodequeue_node_titles
-  o #102789: Give proper indexing to sub tables.
   o 102385: Extraneous SEQUENCE in mysql portion of install.
   o 102402: Fix queue empty confirm form.
   o new js queue manager
@@ -12,3 +10,7 @@ Nodequeue-5.x-1.2-beta
   o fixed counting problem with node access
   o #123851: (by njivy) query had too many args
   o #125422: (by njivy) clear queue confirm form did not work
+  o #141128: Missed adding link_remove in update code.
+  o #102790: UTF8 tables support added.
+  o #108078: fix documentation for nodequeue_node_titles
+  o #102789: Give proper indexing to sub tables.

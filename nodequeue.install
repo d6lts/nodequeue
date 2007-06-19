@@ -95,26 +95,19 @@ function nodequeue_update_1() {
   }
 }
 
-function nodequeue_update_2() {
+function nodequeue_update_1000() {
   $ret = array();
-  $ret[] = update_sql("ALTER TABLE {nodequeue_queue} ADD COLUMN link VARCHAR(40) DEFAULT '' NOT NULL");
-  return $ret;
-}
+  $ret[] = t(array('success' => TRUE, 'query' => 'Some of the following queries may appear to fail. This is not a problem.'));
 
-// Create proper indices.
-function nodequeue_update_3() {
-  $ret = array();
+  $ret[] = update_sql("ALTER TABLE {nodequeue_queue} ADD COLUMN link VARCHAR(40) DEFAULT '' NOT NULL");
+  $ret[] = update_sql("ALTER TABLE {nodequeue_queue} ADD COLUMN link_remove VARCHAR(40) DEFAULT '' NOT NULL");
   
   $ret[] = update_sql("CREATE INDEX {nodequeue_roles}_qid_idx ON {nodequeue_roles} (qid)");
   $ret[] = update_sql("CREATE INDEX {nodequeue_roles}_rid_idx ON {nodequeue_roles} (rid)");
   $ret[] = update_sql("CREATE INDEX {nodequeue_types}_qid_idx ON {nodequeue_types} (qid)");
   $ret[] = update_sql("CREATE INDEX {nodequeue_nodes}_qid_idx ON {nodequeue_nodes} (qid, position)");
   $ret[] = update_sql("CREATE INDEX {nodequeue_nodes}_nid_idx ON {nodequeue_nodes} (nid)");
-  return $ret;
-}
-
-function nodequeue_update_4() {
-  $ret = array();
+  
   $ret[] = _system_update_utf8(array('nodequeue_queue', 'nodequeue_roles', 'nodequeue_types', 'nodequeue_nodes'));
   return $ret;
 }
