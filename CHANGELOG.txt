@@ -16,5 +16,8 @@ Nodequeue-5.x-1.2-beta
   o #102789: Give proper indexing to sub tables.
   o #151980: views cache not cleared for new node queues
   o #151981: (dww) add support for a views argument for the title of the nodequeue, not just the queue id
-  o #153077: (dww) Actually working pgsql install now.
+  o #153077: (dww) Actually working pgsql install now. And some queries cleaned up too.
   o #151982: (dww) Add timestamps to queues so that views can sort queues by time added.
+  o #153089: (yched) Minor fix for nodequeue_save when saving nodes, and 'title' field in view.
+
+

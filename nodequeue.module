@@ -746,7 +746,7 @@ function nodequeue_save($queue, $nodes = false) {
   }
 
   if ($nodes && is_array($queue->nodes)) {
-    foreach($queue->nodes as $nid) {
+    foreach($queue->size && $queue->nodes as $nid) {
       db_query("INSERT INTO {nodequeue_roles} (qid, nid, position) VALUES (%d, %d, %d)", $queue->qid, $nid, ++$position);
 
       // Stop if we somehow have more nodes in the queue than are allowed.
@@ -1224,7 +1224,7 @@ function nodequeue_handler_arg_qid($op, &$query, $argtype, $arg = '') {
     case 'link':
       return l($query->title, "$arg/" . intval($query->qid));
     case 'title':
-      $queue = db_fetch_object(db_query("SELECT title FROM {nodequeue_queue} WHERE qid = %d", $query->qid));
+      $queue = db_fetch_object(db_query("SELECT title FROM {nodequeue_queue} WHERE qid = %d", $query));
       return $queue->title;
   }
 }
@@ -1250,7 +1250,6 @@ function nodequeue_handler_arg_qtitle($op, &$query, $argtype, $arg = '') {
     case 'link':
       return l($query->title, "$arg/" . intval($query->qid));
     case 'title':
-      $queue = db_fetch_object(db_query("SELECT title FROM {nodequeue_queue} WHERE qid = %d", $query->qid));
-      return $queue->title;
+      return check_plain($query);
   }
 }
