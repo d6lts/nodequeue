@@ -203,7 +203,7 @@ function nodequeue_page_form($node) {
     "INNER JOIN {nodequeue_types} nt ON nt.qid = nq.qid " .
     "LEFT JOIN {nodequeue_nodes} nqn ON nqn.qid = nq.qid " . $roles_join .
     "WHERE nt.type = '%s' " . $roles_where .
-    "GROUP BY nq.qid  ORDER BY nq.title", array_merge(array($node->type), $roles));
+    "GROUP BY nq.qid, nq.title, nq.size, nqn.position ORDER BY nq.title", array_merge(array($node->type), $roles));
 
   $form = array();
   while ($queue = db_fetch_object($result)) {
@@ -248,7 +248,7 @@ function theme_nodequeue_page_form($form) {
  * Display a list of queues and their status for the administrator.
  */
 function nodequeue_admin_page() {
-  $result = pager_query('SELECT nq.*, COUNT(DISTINCT(nn.nid)) AS nodes FROM {nodequeue_queue} nq LEFT JOIN {nodequeue_nodes} nn ON nq.qid = nn.qid GROUP by nq.title', 20, 0, 'SELECT COUNT(q.qid) FROM {nodequeue_queue} q');
+  $result = pager_query('SELECT nq.title, nq.qid, nq.size, COUNT(DISTINCT(nn.nid)) AS nodes FROM {nodequeue_queue} nq LEFT JOIN {nodequeue_nodes} nn ON nq.qid = nn.qid GROUP by nq.title, nq.qid, nq.size', 20, 0, 'SELECT COUNT(q.qid) FROM {nodequeue_queue} q');
 
   if (db_num_rows($result)) {
     $header = array(t('Title'), t('Max Nodes'), t('In Queue'), t('Operation'));
