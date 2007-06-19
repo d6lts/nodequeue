@@ -538,8 +538,9 @@ function nodequeue_queue_admin_submit($form_id, $form_values) {
   db_query("DELETE FROM {nodequeue_nodes} WHERE qid = %d", $form_values['qid']);
   if ($form_values['op'] == t('Save') && $form_values['order']) {
     $counter = 1;
+    $now = time();
     foreach (explode(',', $form_values['order']) as $nid) {
-      db_query("INSERT INTO {nodequeue_nodes} (qid, nid, position) VALUES (%d, %d, %d)", $form_values['qid'], $nid, $counter++);
+      db_query("INSERT INTO {nodequeue_nodes} (qid, nid, position, timestamp) VALUES (%d, %d, %d, %d)", $form_values['qid'], $nid, $counter++, $now);
     }
   }
   drupal_set_message(t('The queue has been updated'));
@@ -781,7 +782,7 @@ function nodequeue_queue_front($queue, $position) {
   $entry = db_fetch_object(db_query("SELECT * FROM {nodequeue_nodes} WHERE qid= %d AND position = %d", $queue->qid, $position));
   db_query("DELETE FROM {nodequeue_nodes} WHERE qid = %d AND position = %d", $queue->qid, $position);
   db_query("UPDATE {nodequeue_nodes} SET position = position + 1 WHERE qid= %d AND position < %d", $queue->qid, $position);
-  db_query("INSERT INTO {nodequeue_nodes} (qid, nid, position) VALUES (%d, %d, 1)", $queue->qid, $entry->nid);
+  db_query("INSERT INTO {nodequeue_nodes} (qid, nid, position, timestamp) VALUES (%d, %d, 1, %d)", $queue->qid, $entry->nid, $entry->timestamp);
 }
 
 function nodequeue_queue_back($queue, $position) {
@@ -790,7 +791,7 @@ function nodequeue_queue_back($queue, $position) {
   $entry = db_fetch_object(db_query("SELECT * FROM {nodequeue_nodes} WHERE qid = %d AND position = %d", $queue->qid, $position));
   db_query("DELETE FROM {nodequeue_nodes} WHERE qid = %d AND position = %d", $queue->qid, $position);
   db_query("UPDATE {nodequeue_nodes} SET position = position - 1 WHERE qid = %d AND position > %d", $queue->qid, $position);
-  db_query("INSERT INTO {nodequeue_nodes} (qid, nid, position) VALUES (%d, %d, %d)", $queue->qid, $entry->nid, $queue->count);
+  db_query("INSERT INTO {nodequeue_nodes} (qid, nid, position, timestamp) VALUES (%d, %d, %d, %d)", $queue->qid, $entry->nid, $queue->count, $entry->timestamp);
 }
 
 function _nodequeue_queue_remove(&$queue, $start, $end = 0) {
@@ -817,7 +818,7 @@ function _nodequeue_queue_add(&$queue, $nid) {
 
   $nid = intval($nid);
   $queue->count++;
-  db_query("INSERT INTO {nodequeue_nodes} (qid, nid, position) VALUES (%d, %d, %d)", $queue->qid, $nid, $queue->count);
+  db_query("INSERT INTO {nodequeue_nodes} (qid, nid, position, timestamp) VALUES (%d, %d, %d, %d)", $queue->qid, $nid, $queue->count, time());
 }
 
 function nodequeue_queue_clear($qid) {
@@ -1018,6 +1019,16 @@ function nodequeue_views_tables() {
         "field" => "nid"
       ),
     ),
+    "fields" => array(
+      'timestamp' => array(
+        'name' => t('NodeQueue: Timestamp'),
+        'sortable' => true,
+        'handler' => views_handler_field_dates(),
+        'option' => 'string',
+        'help' => t('Display the time the node was added to a given node queue.').' '.
+                  t('The option field may be used to specify the custom date format as it\'s required by the date() function or if "as time ago" has been chosen to customize the granularity of the time interval.'),
+      ),
+    ),
     "filters" => array(
       "qid" => array(
         'name' => "NodeQueue: Queue",
@@ -1031,12 +1042,26 @@ function nodequeue_views_tables() {
         'operator' => 'views_handler_operator_gtlt',
         'help' => t('Filter by where in the queue an item is.'),
       ),
+      "timestamp" => array(
+        'name' => t('NodeQueue: Queue Timestamp'),
+        'operator' => 'views_handler_operator_gtlt',
+        'value' => views_handler_filter_date_value_form(),
+        'handler' => 'views_handler_filter_timestamp',
+        'option' => 'string',
+        'help' => t('This filter allows nodes to be filtered by the time they were added to a given NodeQueue.') .' '. views_t_strings('filter date'),
+      ),
     ),
     "sorts" => array(
       "position" => array(
         'name' => "NodeQueue: Queue Position",
         'field' => 'position',
         'help' => t('When sorting by queue position, be sure the view is filtered to a single queue or the sort will not work very well.'),
+      ),
+      'timestamp' => array(
+        'name' => t('NodeQueue: Timestamp'),
+        'handler' => 'views_handler_sort_date',
+        'option' => views_handler_sort_date_options(),
+        'help' => t('Sort by the time the node was added to a node queue.'),
       ),
     ),
   );
