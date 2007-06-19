@@ -26,6 +26,7 @@ function nodequeue_menu($may_cache) {
       'title' => t('Node queue'),
       'access' => $access,
       'callback' => 'nodequeue_admin_page',
+      'description' => t('Create and maintain simple node queues.'),
       'type' => MENU_NORMAL_ITEM
     );
     $items[] = array(
@@ -223,7 +224,7 @@ function theme_nodequeue_page_form($form) {
  * Display a list of queues and their status for the administrator.
  */
 function nodequeue_admin_page() {
-  $result = pager_query('SELECT nq.*, COUNT(DISTINCT(nn.nid)) as nodes FROM {nodequeue_queue} nq LEFT JOIN {nodequeue_nodes} nn ON nq.qid = nn.qid GROUP by nq.title', 20, 0, 'SELECT COUNT(q.qid) FROM {nodequeue_queue} q');
+  $result = pager_query('SELECT nq.*, COUNT(DISTINCT(nn.nid)) AS nodes FROM {nodequeue_queue} nq LEFT JOIN {nodequeue_nodes} nn ON nq.qid = nn.qid GROUP by nq.title', 20, 0, 'SELECT COUNT(q.qid) FROM {nodequeue_queue} q');
 
   if (db_num_rows($result)) {
     $header = array(t('Title'), t('Max Nodes'), t('In Queue'), t('Operation'));

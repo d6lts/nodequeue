@@ -16,18 +16,24 @@ function nodequeue_install() {
 
         db_query("CREATE TABLE if not exists {nodequeue_roles} (
           qid int(10) unsigned NOT NULL,
-          rid int(10) unsigned
+          rid int(10) unsigned,
+          KEY {nodequeue_roles}_qid_idx (qid),
+          KEY {nodequeue_roles}_rid_idx (rid)
         )");
 
         db_query("CREATE TABLE if not exists {nodequeue_types} (
           qid int(10) unsigned NOT NULL,
-          type varchar(255)
+          type varchar(255),
+          KEY {nodequeue_types}_qid_idx (qid),
+          KEY {nodequeue_types}_type_idx (type)
         )");
 
         db_query("CREATE TABLE if not exists {nodequeue_nodes} (
           qid int(10) unsigned NOT NULL,
           nid int(10) unsigned,
-          position int(3) unsigned
+          position int(3) unsigned,
+          KEY {nodequeue_nodes}_qid_idx (qid, position),
+          KEY {nodequeue_nodes}_nid_idx (nid),
         )");
       $success = TRUE;
       break;
@@ -45,17 +51,23 @@ function nodequeue_install() {
           qid integer unsigned NOT NULL,
           rid integer unsigned
         )");
+        db_query("CREATE INDEX {nodequeue_roles}_qid_idx ON {nodequeue_roles} (qid)");
+        db_query("CREATE INDEX {nodequeue_roles}_rid_idx ON {nodequeue_roles} (rid)");
 
         db_query("CREATE TABLE {nodequeue_types} (
           qid integer unsigned NOT NULL,
           type varchar(255)
         )");
+        db_query("CREATE INDEX {nodequeue_types}_qid_idx ON {nodequeue_types} (qid)");
 
         db_query("CREATE TABLE {nodequeue_nodes} (
           qid integer unsigned NOT NULL,
           nid integer unsigned,
           position integer unsigned
         )");
+        db_query("CREATE INDEX {nodequeue_nodes}_qid_idx ON {nodequeue_nodes} (qid, position)");
+        db_query("CREATE INDEX {nodequeue_nodes}_nid_idx ON {nodequeue_nodes} (nid)");
+
         db_query("CREATE SEQUENCE nodequeue_queue_qid_seq INCREMENT 1 START 1");
       $success = TRUE;
       break;
@@ -86,5 +98,18 @@ function nodequeue_update_1() {
 function nodequeue_update_2() {
   $ret = array();
   $ret[] = update_sql("ALTER TABLE {nodequeue_queue} ADD COLUMN link VARCHAR(40) DEFAULT '' NOT NULL");
+  return $ret;
+}
+
+// Create proper indices.
+function nodequeue_update_3() {
+  $ret = array();
+  
+  $ret[] = update_sql("CREATE INDEX {nodequeue_roles}_qid_idx ON {nodequeue_roles} (qid)");
+  $ret[] = update_sql("CREATE INDEX {nodequeue_roles}_rid_idx ON {nodequeue_roles} (rid)");
+  $ret[] = update_sql("CREATE INDEX {nodequeue_types}_qid_idx ON {nodequeue_types} (qid)");
+  $ret[] = update_sql("CREATE INDEX {nodequeue_nodes}_qid_idx ON {nodequeue_nodes} (qid, position)");
+  $ret[] = update_sql("CREATE INDEX {nodequeue_nodes}_nid_idx ON {nodequeue_nodes} (nid)");
+
   return $ret;
 }
