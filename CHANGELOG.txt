@@ -1,4 +1,5 @@
 Nodequeue 4.7.x-1.2
+  o #102790: UTF8 tables support added.
   o #63745: nodequeue_fetch_back() used wrong query.
   o #108078: fix documentation for nodequeue_node_titles
 

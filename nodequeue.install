@@ -10,23 +10,23 @@ function nodequeue_install() {
           qid int(10) unsigned NOT NULL PRIMARY KEY,
           title varchar(255) NOT NULL,
           size int(3) unsigned default '0'
-        )");
+        ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */");
 
         db_query("CREATE TABLE if not exists {nodequeue_roles} (
           qid int(10) unsigned NOT NULL,
           rid int(10) unsigned
-        )");
+        ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */");
 
         db_query("CREATE TABLE if not exists {nodequeue_types} (
           qid int(10) unsigned NOT NULL,
           type varchar(255)
-        )");
+        ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */");
 
         db_query("CREATE TABLE if not exists {nodequeue_nodes} (
           qid int(10) unsigned NOT NULL,
           nid int(10) unsigned,
           position int(3) unsigned
-        )");
+        ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */");
       $success = TRUE;
       break;
 
@@ -69,4 +69,8 @@ function nodequeue_update_1() {
   if ($GLOBALS['db_type'] == 'pgsql') {
     db_query("CREATE SEQUENCE nodequeue_queue_qid_seq INCREMENT 1 START 1");
   }
+}
+
+function nodequeue_update_2() {
+  return _system_update_utf8(array('nodequeue_queue', 'nodequeue_roles', 'nodequeue_types', 'nodequeue_nodes'));
 }
