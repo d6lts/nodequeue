@@ -33,7 +33,7 @@ function nodequeue_install() {
           nid int(10) unsigned,
           position int(3) unsigned,
           KEY {nodequeue_nodes}_qid_idx (qid, position),
-          KEY {nodequeue_nodes}_nid_idx (nid),
+          KEY {nodequeue_nodes}_nid_idx (nid)
         )/*!40100 DEFAULT CHARACTER SET utf8 */");
       $success = TRUE;
       break;
