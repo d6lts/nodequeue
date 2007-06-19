@@ -12,21 +12,21 @@ function nodequeue_install() {
           size int(3) unsigned default '0',
           link varchar(255),
           link_remove varchar(255)
-        )");
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */");
 
         db_query("CREATE TABLE if not exists {nodequeue_roles} (
           qid int(10) unsigned NOT NULL,
           rid int(10) unsigned,
           KEY {nodequeue_roles}_qid_idx (qid),
           KEY {nodequeue_roles}_rid_idx (rid)
-        )");
+        )/*!40100 DEFAULT CHARACTER SET utf8 */");
 
         db_query("CREATE TABLE if not exists {nodequeue_types} (
           qid int(10) unsigned NOT NULL,
           type varchar(255),
           KEY {nodequeue_types}_qid_idx (qid),
           KEY {nodequeue_types}_type_idx (type)
-        )");
+        )/*!40100 DEFAULT CHARACTER SET utf8 */");
 
         db_query("CREATE TABLE if not exists {nodequeue_nodes} (
           qid int(10) unsigned NOT NULL,
@@ -34,7 +34,7 @@ function nodequeue_install() {
           position int(3) unsigned,
           KEY {nodequeue_nodes}_qid_idx (qid, position),
           KEY {nodequeue_nodes}_nid_idx (nid),
-        )");
+        )/*!40100 DEFAULT CHARACTER SET utf8 */");
       $success = TRUE;
       break;
 
@@ -110,6 +110,11 @@ function nodequeue_update_3() {
   $ret[] = update_sql("CREATE INDEX {nodequeue_types}_qid_idx ON {nodequeue_types} (qid)");
   $ret[] = update_sql("CREATE INDEX {nodequeue_nodes}_qid_idx ON {nodequeue_nodes} (qid, position)");
   $ret[] = update_sql("CREATE INDEX {nodequeue_nodes}_nid_idx ON {nodequeue_nodes} (nid)");
+  return $ret;
+}
 
+function nodequeue_update_4() {
+  $ret = array();
+  $ret[] = _system_update_utf8(array('nodequeue_queue', 'nodequeue_roles', 'nodequeue_types', 'nodequeue_nodes'));
   return $ret;
 }
