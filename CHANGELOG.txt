@@ -1,4 +1,5 @@
 Nodequeue-5.x-1.2-beta
+  o #108078: fix documentation for nodequeue_node_titles
   o #102789: Give proper indexing to sub tables.
   o 102385: Extraneous SEQUENCE in mysql portion of install.
   o 102402: Fix queue empty confirm form.
