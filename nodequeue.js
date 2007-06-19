@@ -103,6 +103,7 @@ Drupal.nodequeue.autoAttach = function() {
     href = $(this).attr('href');
     $.ajax({
       type: 'POST',
+      data: { js: 1 },
       url: href,
       global: true,
       success: function (data) {
@@ -117,6 +118,7 @@ Drupal.nodequeue.autoAttach = function() {
         }
       },
     });
+    return false;
   });
 }
 
