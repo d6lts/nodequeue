@@ -142,13 +142,35 @@ function nodequeue_page($nid, $op = NULL, $qid = NULL) {
   }
   else {
     if ($op && $qid) {
-      if ($op == 'add') {
-        nodequeue_queue_add($qid, $nid);
+      $queue = nodequeue_load($qid);
+      $js = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest';
+      if ($queue) {
+        if ($op == 'add') {
+          _nodequeue_queue_add($queue, $nid);
+          if ($js) {
+            $return = new stdClass();
+            $return->status = 1;
+            $return->label = $queue->link_remove;
+            $return->href = "node/$nid/nodequeue/remove/$queue->qid";
+          }
+        }
+        elseif ($op == 'remove') {
+          if ($pos = nodequeue_queue_position($qid, $nid)) {
+            _nodequeue_queue_remove($queue, $pos);
+          }
+          if ($js) {
+            $return = new stdClass();
+            $return->status = 1;
+            $return->label = $queue->link;
+            $return->href = "node/$nid/nodequeue/add/$queue->qid";
+          }
+        }
+        if (isset($return)) {
+          print drupal_to_js($return);
+          return;
+        }
+        drupal_goto("node/$nid/nodequeue");
       }
-      elseif ($op == 'remove') {
-        nodequeue_queue_remove_node($qid, $nid);
-      }
-      drupal_goto("node/$nid/nodequeue");
     }
     return drupal_get_form('nodequeue_page_form', $node);
   }
@@ -347,7 +369,7 @@ function nodequeue_queue_form($queue = NULL) {
  */
 function nodequeue_queue_form_submit($formid, $form) {
   if ($_POST['op'] == t('Delete')) {
-    return drupal_goto("admin/content/nodequeue/$form[qid]/delete");
+    return "admin/content/nodequeue/$form[qid]/delete";
   }
 
   $queue = (object) $form;
@@ -367,10 +389,11 @@ function nodequeue_queue_form_submit($formid, $form) {
   $queue->types = $types;
 
   nodequeue_save($queue);
-  if ($queue->size) // 0 means "don't care"
+  if ($queue->size) {// 0 means "don't care"
     _nodequeue_check_queuesize($queue);
+  }
   drupal_set_message(t('The queue has been updated.'));
-  drupal_goto('admin/content/nodequeue');
+  return 'admin/content/nodequeue';
 }
 
 /**
@@ -565,7 +588,7 @@ function nodequeue_clear_confirm($queue) {
 function nodequeue_clear_confirm_submit($formid, $form) {
   if ($form['confirm']) {
     nodequeue_queue_clear($form['qid']);
-    return drupal_goto("admin/content/nodequeue/$form[qid]/view");
+    return "admin/content/nodequeue/$form[qid]/view";
   }
 }
 
@@ -602,24 +625,27 @@ function nodequeue_link($type, $node, $teaser) {
     $sql = 'SELECT nq.qid, nq.link, nq.link_remove, nqn.position FROM {nodequeue_queue} nq ' .
       'INNER JOIN {nodequeue_types} nt ON nt.qid = nq.qid ' . $roles_join .
       'LEFT JOIN {nodequeue_nodes} nqn ON nqn.qid = nq.qid AND nqn.nid = %d ' .
-      "WHERE nt.type = '%s' " . $roles_where;
+      "WHERE link <> '' AND nt.type = '%s' " . $roles_where;
 
     $result = db_query($sql, array_merge(array($node->nid, $node->type), $roles));
     $links = array();
     while ($queue = db_fetch_object($result)) {
       if (!$queue->position) {
-        $links[] = array(
-          'title' => $queue->link, 
+        $links['nodequeue-ajax-toggle-' . $queue->qid] = array(
+          'title' => $queue->link,  
           'href' => "node/$node->nid/nodequeue/add/$queue->qid", 
+          'attributes' => array('class' => 'nodequeue-ajax-toggle'),
           'query' => drupal_get_destination());
       }
       else if ($queue->link_remove) {
-        $links[] = array(
+        $links['nodequeue-ajax-toggle-' . $queue->qid] = array(
           'title' => $queue->link_remove, 
           'href' => "node/$node->nid/nodequeue/remove/$queue->qid", 
+          'attributes' => array('class' => 'nodequeue-ajax-toggle'),
           'query' => drupal_get_destination());
       }
     }
+    drupal_add_js(drupal_get_path('module', 'nodequeue') .'/nodequeue.js');
   }
   return $links;
 }

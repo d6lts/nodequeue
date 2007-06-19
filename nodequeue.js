@@ -97,6 +97,27 @@ Drupal.nodequeue.autoAttach = function() {
     });
     $('#nodequeue-order').val(order);
   });
+
+  $('a.nodequeue-ajax-toggle').click(function() {
+    var a = this;
+    href = $(this).attr('href');
+    $.ajax({
+      type: 'POST',
+      url: href,
+      global: true,
+      success: function (data) {
+        // Parse response
+        data = Drupal.parseJson(data);
+        // Change text on success
+        if (data.status) {
+          // Change label back
+          $(a).attr('href', data.href);
+          $(a).html(data.label);
+          return;
+        }
+      },
+    });
+  });
 }
 
 if (Drupal.jsEnabled) {
