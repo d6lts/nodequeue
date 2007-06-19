@@ -14,3 +14,4 @@ Nodequeue-5.x-1.2-beta
   o #102790: UTF8 tables support added.
   o #108078: fix documentation for nodequeue_node_titles
   o #102789: Give proper indexing to sub tables.
+  o #151980: views cache not cleared for new node queues

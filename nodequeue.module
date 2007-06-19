@@ -692,7 +692,7 @@ function nodequeue_save($queue, $nodes = false) {
   if (!$queue->qid) {
     $queue->qid = db_next_id("{nodequeue_queue}_qid");
     db_query("INSERT INTO {nodequeue_queue} (qid, title, size, link, link_remove) VALUES (%d, '%s', %d, '%s', '%s')", $queue->qid, $title, $queue->size, $queue->link, $queue->link_remove);
-    if (module_exists('views_invalidate_cache')) {
+    if (function_exists('views_invalidate_cache')) {
       views_invalidate_cache();
     }
   }
