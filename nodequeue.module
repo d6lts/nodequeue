@@ -746,11 +746,11 @@ function nodequeue_save($queue, $nodes = false) {
   }
 
   if ($nodes && is_array($queue->nodes)) {
-    foreach($queue->size && $queue->nodes as $nid) {
+    foreach($queue->nodes as $nid) {
       db_query("INSERT INTO {nodequeue_roles} (qid, nid, position) VALUES (%d, %d, %d)", $queue->qid, $nid, ++$position);
 
       // Stop if we somehow have more nodes in the queue than are allowed.
-      if ($position >= $queue->size)
+      if ($queue->size && $position >= $queue->size)
         break;
     }
   }
