@@ -11,7 +11,12 @@ function nodequeue_install() {
           title varchar(255) NOT NULL,
           size int(3) unsigned default '0',
           link varchar(255),
-          link_remove varchar(255)
+          link_remove varchar(255),
+          owner varchar(255) default 'nodequeue',
+          show_in_ui int(1) default '1',
+          show_in_tab int(1) default '1',
+          show_in_links int(1) default '1',
+          reference varchar(255) default '0'
         ) /*!40100 DEFAULT CHARACTER SET utf8 */");
 
         db_query("CREATE TABLE if not exists {nodequeue_roles} (
@@ -28,12 +33,24 @@ function nodequeue_install() {
           KEY {nodequeue_types}_type_idx (type)
         )/*!40100 DEFAULT CHARACTER SET utf8 */");
 
+        // Subqueues are minor queues that inherit all of the properties of
+        // the parent queue. A parent queue must have at least 1 subqueue
+        // to do anything. Reference is for the use of whatever is creating
+        // the subqueues in order to link it to some other ID easily.
+        db_query("CREATE TABLE if not exists {nodequeue_subqueue} (
+          sqid int(10) unsigned PRIMARY KEY,
+          qid int(10) unsigned NOT NULL,
+          reference varchar(255) default 0,
+          KEY {nodequeue_subqueue}_qid_idx (qid)
+        )/*!40100 DEFAULT CHARACTER SET utf8 */"); 
+
         db_query("CREATE TABLE if not exists {nodequeue_nodes} (
           qid int(10) unsigned NOT NULL,
+          sqid int(10) unsigned NOT NULL,
           nid int(10) unsigned,
           position int(3) unsigned,
           timestamp int unsigned NOT NULL default '0',
-          KEY {nodequeue_nodes}_qid_idx (qid, position),
+          KEY {nodequeue_nodes}_sqid_idx (sqid, position),
           KEY {nodequeue_nodes}_nid_idx (nid)
         )/*!40100 DEFAULT CHARACTER SET utf8 */");
       $success = TRUE;
@@ -44,6 +61,9 @@ function nodequeue_install() {
           qid integer NOT NULL PRIMARY KEY,
           title varchar(255) NOT NULL,
           size integer default '0',
+          owner varchar(255) default 'nodequeue',
+          show_in_ui integer default '1',
+          show_in_tab integer default '1',
           link varchar(255),
           link_remove varchar(255)
         )");
@@ -62,12 +82,13 @@ function nodequeue_install() {
         db_query("CREATE INDEX {nodequeue_types}_qid_idx ON {nodequeue_types} (qid)");
 
         db_query("CREATE TABLE {nodequeue_nodes} (
+          sqid integer NOT NULL,
           qid integer NOT NULL,
           nid integer,
           position integer,
           timestamp integer NOT NULL default '0',
         )");
-        db_query("CREATE INDEX {nodequeue_nodes}_qid_idx ON {nodequeue_nodes} (qid, position)");
+        db_query("CREATE INDEX {nodequeue_nodes}_sqid_idx ON {nodequeue_nodes} (sqid, position)");
         db_query("CREATE INDEX {nodequeue_nodes}_nid_idx ON {nodequeue_nodes} (nid)");
 
         db_query("CREATE SEQUENCE nodequeue_queue_qid_seq INCREMENT 1 START 1");
@@ -131,5 +152,58 @@ function nodequeue_update_5001() {
       db_add_column($ret, 'nodequeue_nodes', 'timestamp', 'integer', array('default' => 0, 'not null' => TRUE));
       break;
   }
+  return $ret;
+}
+
+function nodequeue_update_5201() {
+  $ret = array();
+  // Add new columns to the nodequeue_queue table.
+  db_add_column($ret, 'nodequeue_queue', 'owner', 'varchar(255)', array('default' => "'nodequeue'"));
+  db_add_column($ret, 'nodequeue_queue', 'show_in_ui', 'integer', array('default' => 1));
+  db_add_column($ret, 'nodequeue_queue', 'show_in_tab', 'integer', array('default' => 1));
+  db_add_column($ret, 'nodequeue_queue', 'show_in_links', 'integer', array('default' => 1));
+  db_add_column($ret, 'nodequeue_queue', 'reference', 'varchar(255)', array('default' => 0));
+
+  // Create the nodequeue_subqueue table.
+  $ret[] = update_sql("UPDATE {nodequeue_queue} SET owner = 'nodequeue', show_in_ui = 1, show_in_tab = 1, show_in_links = 1, reference = 0");
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      $ret[] = update_sql("CREATE TABLE if not exists {nodequeue_subqueue} (
+          sqid int(10) unsigned PRIMARY KEY,
+          qid int(10) unsigned NOT NULL,
+          reference varchar(255) default 0
+        )/*!40100 DEFAULT CHARACTER SET utf8 */");
+      break;
+    case 'pgsql':
+      break;
+  }
+
+  $ret[] = update_sql("CREATE INDEX {nodequeue_subqueue}_qid_idx ON {nodequeue_subqueue} (qid)");
+
+  // Populate the nodequeue_subqueue table.
+  $result = db_query("SELECT * FROM {nodequeue_queue}");
+  while ($queue = db_fetch_object($result)) {
+    $ret[] = update_sql("INSERT INTO {nodequeue_subqueue} (sqid, qid, reference) VALUES ($queue->qid, $queue->qid, $queue->qid)");
+  }
+
+  if (isset($queue)) {
+    // Fix the sequences
+    switch ($GLOBALS['db_type']) {
+      case 'mysql':
+      case 'mysqli':
+        $ret[] = update_sql("INSERT INTO {sequences} (name, id) VALUES ('{nodequeue_subqueue}_sqid', $queue->qid");
+        break;
+      case 'pgsql':
+        // I don't believe we need to do anything here.
+        break;
+    }
+  }
+
+  // Transform the nodequeue_nodes table.
+  db_add_column($ret, 'nodequeue_nodes', 'sqid', 'integer');
+  $ret[] = update_sql("UPDATE {nodequeue_nodes} SET sqid = qid");
+  $ret[] = update_sql("CREATE INDEX {nodequeue_nodes}_sqid_idx ON {nodequeue_nodes} (sqid, position)");
+
   return $ret;
 }

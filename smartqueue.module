@@ -1,0 +1,141 @@
+<?php
+// $Id$
+
+/**
+ * Implementation of hook_nodequeue_info()
+ */
+function smartqueue_nodequeue_info() {
+  return array('smartqueue_taxonomy' => array(
+    'title' => t('Taxonomy queue'),
+    'description' => t('Each particular grouping of taxonomy terms from the selected vocabularlies have their own unique subqueue. You can place nodes into any of these subqueues based on which terms that node has been tagged with. Using this with large or too many taxonomies may degrade performance.'),
+    ));
+}
+
+/**
+ * Implementation of hook_nodequeue()
+ */
+function smartqueue_taxonomy_nodequeue_form($queue, &$form) {
+  foreach (taxonomy_get_vocabularies() as $vid => $vocabulary) {
+    $options[$vid] = $vocabulary->name;
+  }
+  $form['placeholder']['vocabularies'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Vocabularies'),
+    '#description' => t('Select which vocabularies to use; each unique combination of terms from all of these vocabularies will have a subqueue.'),
+    '#options' => $options,
+  );
+  
+  if ($queue->qid) {
+    $form['placeholder']['vocabularies']['#disabled'] = TRUE;
+    $form['placeholder']['vocabularies']['#default_value'] = explode('-', $queue->reference);
+  }
+}
+
+/**
+ * Implementation of hook_nodequeue()
+ */
+function smartqueue_taxonomy_nodequeue_form_validate($queue, $form_values, &$form) {
+  if (!isset($queue->qid)) {
+    $vids = array_keys(array_filter($form_values['vocabularies']));
+    if (empty($vids)) {
+      form_error($form['placeholder']['vocabularies'], t('You must select at least one vocabulary.'));
+    }
+
+    // Convert this to our reference.
+    form_set_value($form['reference'], implode('-', $vids));
+  }
+}
+
+
+/**
+ * Implementation of hook_nodequeue_subqueues()
+ */
+function smartqueue_taxonomy_nodequeue_subqueues(&$queue, $node) {
+  foreach (explode('-', $queue->reference) as $vid) {
+    $vids[$vid] = array();
+  }
+
+  foreach ($node->taxonomy as $tid => $term) {
+    if (isset($vids[$term->vid])) {
+      $vids[$term->vid][] = $tid;
+    }
+  }
+
+  // Forbid NO terms being set, but allow
+  // various non-terms to be set.
+
+  $empty = TRUE;
+  foreach ($vids as $vid => $tids) {
+    if (!empty($tids)) {
+      $empty = FALSE;
+    }
+    $vids[$vid][] = 0;
+  }
+
+  if ($empty) {
+    return;
+  }
+
+  $references = smartqueue_build_string(array_filter($vids));
+  // Because of how we built this, the last one will always be all zeros. Lose it.
+  array_pop($references);
+
+  foreach ($references as $reference) {
+    if (!isset($queue->sq_reference[$reference])) {
+      $subqueue = nodequeue_add_subqueue($queue, $reference);
+    }
+    else {
+      $subqueue = $queue->sq_reference[$reference];
+    }
+    $subqueues[$subqueue->sqid] = $subqueue;
+  }
+  return $subqueues;
+}
+
+function smartqueue_build_string($arrays) {
+  $array = array_shift($arrays);
+  $term = '';
+  if (empty($arrays))  {
+    return $array;
+  }
+
+  $substrings = smartqueue_build_string($arrays);
+  $strings = array();
+
+  foreach ($array as $term) {
+    foreach ($substrings as $string) {
+      $strings[] = "$term-$string";
+    }
+  }
+
+  return $strings;
+}
+
+function smartqueue_taxonomy_nodequeue_subqueue_title($queue, $subqueue) {
+  $vids = explode('-', $queue->reference);
+  $tids = explode('-', $subqueue->reference);
+  foreach ($vids as $vid) {
+    $tid = array_shift($tids);
+    // $tid can be 0, specifically meaning this term is unset.
+    if ($tid) {
+      $terms = smartqueue_taxonomy_get_terms($vid);
+      $titles[$tid] = check_plain($terms[$tid]);
+    }
+  }
+  return implode('-', $titles);
+}
+
+function smartqueue_taxonomy_get_terms($vid) {
+  static $cache = array();
+  if (!isset($cache[$vid])) {
+    $cache[$vid] = array();
+    $result = db_query("SELECT tid, name FROM {term_data} WHERE vid = %d", $vid);
+    while ($term = db_fetch_object($result)) {
+      $cache[$vid][$term->tid] = $term->name;
+    }
+  }
+  return $cache[$vid];
+}
+
+// TODO:
+// Implement hook_taxonomy to delete subqueues when terms are deleted.

@@ -101,6 +101,7 @@ Drupal.nodequeue.autoAttach = function() {
   $('a.nodequeue-ajax-toggle').click(function() {
     var a = this;
     href = $(this).attr('href');
+    $(a).addClass('throbbing');
     $.ajax({
       type: 'POST',
       data: { js: 1 },
@@ -108,15 +109,22 @@ Drupal.nodequeue.autoAttach = function() {
       global: true,
       success: function (data) {
         // Parse response
+        $(a).removeClass('throbbing');
         data = Drupal.parseJson(data);
         // Change text on success
         if (data.status) {
           // Change label back
           $(a).attr('href', data.href);
           $(a).html(data.label);
+          if (data.sqid) {
+            $('#nodequeue-count-' + data.sqid).html(data.count);
+          }
           return;
         }
       },
+      error: function(data) {
+        $(a).removeClass('throbbing');
+      }
     });
     return false;
   });
