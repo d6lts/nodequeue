@@ -32,14 +32,14 @@ function nodequeue_views_tables() {
       ),
     ),
     "filters" => array(
-      "qid" => array(
-        'name' => "NodeQueue: Queue",
+      "sqid" => array(
+        'name' => t("NodeQueue: Queue"),
         'list' => 'nodequeue_handler_queuelist',
         'operator' => 'views_handler_operator_andor',
-        'help' => t('Filter the view to a specific Node Queue.'),
+        'help' => t('Filter the view to a specific Node Queue. This only applies to queues with a single subqueue.'),
       ),
       "position" => array(
-        'name' => "NodeQueue: Queue Position",
+        'name' => t("NodeQueue: Queue Position"),
         'field' => 'position',
         'operator' => 'views_handler_operator_gtlt',
         'help' => t('Filter by where in the queue an item is.'),
@@ -55,7 +55,7 @@ function nodequeue_views_tables() {
     ),
     "sorts" => array(
       "position" => array(
-        'name' => "NodeQueue: Queue Position",
+        'name' => t("NodeQueue: Queue Position"),
         'field' => 'position',
         'help' => t('When sorting by queue position, be sure the view is filtered to a single queue or the sort will not work very well.'),
       ),
@@ -67,11 +67,36 @@ function nodequeue_views_tables() {
       ),
     ),
   );
+
+  $queues = nodequeue_load_queues(nodequeue_get_all_qids(NULL));
+  foreach ($queues as $queue) {
+    if (count($queue->subqueue) > 1) {
+      $tables['nodequeue_nodes']['filters']["qid_$queue->qid"] = array(
+        'name' => t("NodeQueue: Subqueues for @queue", array('@queue' => $queue->title)),
+        'list' => 'nodequeue_handler_subqueuelist',
+        'qid' => $queue->qid,
+        'operator' => 'views_handler_operator_andor',
+        'help' => t('Filter the view to a specific Node Queue.'),
+      );
+    }
+  }
+  $tables['nodequeue_subqueue'] = array(
+    "name" => "nodequeue_subqueue",
+    "join" => array(
+      "left" => array(
+        "table" => "nodequeue_nodes",
+        "field" => "sqid"
+      ),
+      "right" => array(
+        "field" => "sqid"
+      ),
+    ),
+  );
   $tables['nodequeue_queue'] = array(
     "name" => "nodequeue_queue",
     "join" => array(
       "left" => array(
-        "table" => "nodequeue_nodes",
+        "table" => "nodequeue_subqueue",
         "field" => "qid"
       ),
       "right" => array(
@@ -87,24 +112,37 @@ function nodequeue_views_arguments() {
     'nodequeue_qid' => array(
       'name' => t("NodeQueue: Queue ID"),
       'handler' => "nodequeue_handler_arg_qid",
-      'help' => t('The Queue ID argument allows users to filter a view by specifying a Node Queue ID.'),
+      'help' => t('The Queue ID argument allows users to filter a view by specifying a Node Queue ID. This is only valid for simple nodequeues with just one subqueue.'),
     ),
     'nodequeue_qtitle' => array(
       'name' => t("NodeQueue: Queue Title"),
       'handler' => "nodequeue_handler_arg_qtitle",
-      'help' => t('The Queue Title argument allows users to filter a view by specifying a Node Queue Title.'),
+      'help' => t('The Queue Title argument allows users to filter a view by specifying a Node Queue Title. This is only valid for simple nodequeues with just one subqueue.'),
     ),
+  );
+  $arguments["nodequeue_sqid"] = array(
+    'name' => t("NodeQueue: Subqueue ID"),
+    'handler' => "nodequeue_handler_arg_sqid",
+    'operator' => 'views_handler_operator_andor',
+    'help' => t('Filter the view to a specific Sub Queue.'),
+  );
+  $arguments["nodequeue_reference"] = array(
+    'name' => t("NodeQueue: Subqueue reference"),
+    'handler' => "nodequeue_handler_arg_reference",
+    'operator' => 'views_handler_operator_andor',
+    'option' => 'nodequeue_handler_queuelist_all',
+    'help' => t('Filter the view to a specific Sub Queue. The subqueue reference is the ID that the subqueue is attached to; tax id for taxonomy or user id for user queues, etc.'),
   );
   return $arguments;
 }
 
 function nodequeue_views_default_views() {
-  $result = db_query("SELECT * FROM {nodequeue_queue}");
-  while ($queue = db_fetch_object($result)) {
+  $queues = nodequeue_load_queues(nodequeue_get_all_qids(NULL));
+  foreach ($queues as $queue) {
     $view = new stdClass();
     $view->name = "nodequeue_$queue->qid";
     $view->disabled = TRUE;
-    $view->description = t('View node queue ') . check_plain($queue->title);
+    $view->description = t('View node queue @queue', array('@queue' => $queue->title));
     $view->access = array();
     $view->view_args_php = '';
     $view->page = TRUE;
@@ -152,26 +190,41 @@ function nodequeue_views_default_views() {
         'options' => 'link',
       ),
     );
-    $view->filter = array (
-      array (
-        'tablename' => 'nodequeue_nodes',
-        'field' => 'qid',
-        'operator' => 'OR',
-        'options' => '',
-        'value' => array($queue->qid),
-      ),
-    );
     $view->exposed_filter = array (
     );
     $view->requires = array('nodequeue_nodes', 'node');
+    if (count($queue->subqueue) > 1) {
+      // Add an argument to select a subqueue
+    }
+    else {
+      $view->filter = array (
+        array (
+          'tablename' => 'nodequeue_nodes',
+          'field' => 'sqid',
+          'operator' => 'OR',
+          'options' => '',
+          'value' => array($queue->current),
+        ),
+      );
+    }
     $views[$view->name] = $view;
   }
   return $views;
 }
 
 function nodequeue_handler_queuelist() {
-  $result = db_query("SELECT * FROM {nodequeue_queue} ORDER BY title");
-  while ($queue = db_fetch_object($result)) {
+  $queues = nodequeue_load_queues(nodequeue_get_all_qids(NULL));
+  foreach ($queues as $queue) {
+    if (count($queue->subqueue) == 1) {
+      $items[$queue->current] = $queue->title;
+    }
+  }
+  return $items;
+}
+
+function nodequeue_handler_queuelist_all() {
+  $queues = nodequeue_load_queues(nodequeue_get_all_qids(NULL));
+  foreach ($queues as $queue) {
     $items[$queue->qid] = $queue->title;
   }
   return $items;
@@ -225,5 +278,31 @@ function nodequeue_handler_arg_qtitle($op, &$query, $argtype, $arg = '') {
       return l($query->title, "$arg/" . intval($query->qid));
     case 'title':
       return check_plain($query);
+  }
+}
+
+function nodequeue_handler_arg_sqid($op, &$query, $argtype, $arg = '') {
+  switch($op) {
+    case 'summary':
+      $query->ensure_table('nodequeue_subqueue', true);
+      $query->add_field('title', 'nodequeue_subqueue');
+      $query->add_field('sqid', 'nodequeue_subqueue');
+      $query->add_where('nodequeue_subqueue.sqid IS NOT NULL');
+      $fieldinfo['field'] = "nodequeue_queue.title";
+      return $fieldinfo;
+      break;
+    case 'sort':
+      $query->add_orderby('nodequeue_queue', 'title', $argtype);
+      break;
+    case 'filter':
+      $qid = intval($arg);
+      $query->ensure_table('nodequeue_queue', true);
+      $query->add_where("nodequeue_queue.qid = %d", $qid);
+      break;
+    case 'link':
+      return l($query->title, "$arg/" . intval($query->qid));
+    case 'title':
+      $queue = db_fetch_object(db_query("SELECT title FROM {nodequeue_queue} WHERE qid = %d", $query));
+      return $queue->title;
   }
 }

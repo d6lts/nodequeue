@@ -389,7 +389,7 @@ function nodequeue_node_tab($node, $queues) {
  */
 function nodequeue_view_queues() {
   // Fetch all of the queues.
-  $queues = nodequeue_load_queues(nodequeue_get_all_qids());
+  $queues = nodequeue_load_queues(nodequeue_get_all_qids(25));
   if (empty($queues)) {
     return t('No node queues exist.');
   }
@@ -423,7 +423,7 @@ function nodequeue_view_queues() {
   }
 
   $output = theme('table', $header, $rows);
-  $output .= theme('pager', NULL, 20);
+  $output .= theme('pager', NULL, 25);
 
   return  $output;
 }
@@ -1091,16 +1091,25 @@ function nodequeue_get_qids($type, $account = NULL) {
  *   => true/false, 'show_in_links' => true/false }
  */
 function nodequeue_get_all_qids($page_size = 25, $pager_element = 0) {
-  $sql = 'SELECT nq.qid ' .
-         'FROM {nodequeue_queue} nq ' .
-         'WHERE nq.show_in_ui = 1 ';
-  $count_sql = 'SELECT COUNT(q.qid) FROM {nodequeue_queue} q WHERE q.show_in_ui = 1 ';
-  $result = pager_query($sql, 20, 0, $count_sql);
+  static $cache = NULL;
+  if (!isset($cache)) { 
+    $sql = 'SELECT nq.qid ' .
+           'FROM {nodequeue_queue} nq ' .
+           'WHERE nq.show_in_ui = 1 ';
+    $count_sql = 'SELECT COUNT(q.qid) FROM {nodequeue_queue} q WHERE q.show_in_ui = 1 ';
+    if ($page_size) {
+      $result = pager_query($sql, $page_size, $pager_element, $count_sql);
+    }
+    else {
+      $result = db_query($sql, $count_sql);
+    }
 
-  while ($qid = db_fetch_object($result)) {
-    $qids[$qid->qid] = $qid->qid;
+    while ($qid = db_fetch_object($result)) {
+      $qids[$qid->qid] = $qid->qid;
+    }
+    $cache = $qids;
   }
-  return $qids;
+  return $cache;
 }
 
 /**
