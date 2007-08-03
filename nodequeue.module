@@ -272,6 +272,8 @@ function nodequeue_js_output($label, $href, $count = NULL, $sqid = NULL) {
     $return->sqid = $sqid;
   }
 
+  // let the world know this isn't normal output.
+  drupal_set_header('text/javascript');
   print drupal_to_js($return);
   exit;
 }
