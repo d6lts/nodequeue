@@ -129,9 +129,8 @@ function nodequeue_menu($may_cache) {
       );
 
       $sqid = arg(5);
-      if (is_numeric($sqid) && isset($queue->subqueue[$sqid])) {
+      if (is_numeric($sqid) && $subqueue = nodequeue_load_subqueue($sqid)) {
         // The following operations require a sqid and a nid.
-        $subqueue = $queue->subqueue[$sqid];
         $nid = arg(6);
         if (in_array(arg(4), array('add', 'remove-node')) &&
             is_numeric($nid)) {
@@ -230,6 +229,13 @@ function nodequeue_link($type, $node = NULL, $teaser = FALSE) {
   if ($type == 'node' && variable_get('nodequeue_links', FALSE) && user_access('manipulate queues')) {
     $queues = nodequeue_load_queues_by_type($node->type, 'links');
     $subqueues = nodequeue_get_subqueues_by_node($queues, $node);
+    if (empty($subqueues)) {
+      return;
+    }
+
+    // resort the subqueues to retain consistent ordering:
+
+    ksort($subqueues);
     nodequeue_set_subqueue_positions($subqueues, $node->nid);
 
     foreach ($subqueues as $subqueue) {
@@ -263,7 +269,7 @@ function nodequeue_link($type, $node = NULL, $teaser = FALSE) {
 function nodequeue_js_output($label, $href, $count = NULL, $sqid = NULL) {
   $return = new stdClass();
   $return->status = 1;
-  $return->label = $label;
+  $return->label = check_plain($label);
   $return->href = $href;
   if (isset($count)) {
     $return->count = $count;
@@ -282,15 +288,14 @@ function nodequeue_js_output($label, $href, $count = NULL, $sqid = NULL) {
  * Page callback to add a node to a queue.
  */
 function nodequeue_admin_add_node($queue, $subqueue, $node) {
-  $js = !empty($_POST['js']);
-  $queue->subqueue[$sqid]->count = nodequeue_get_subqueue_count($subqueue->sqid);
+  nodequeue_subqueue_add($queue, $subqueue, $node->nid);
 
-  nodequeue_subqueue_add($queue, $subqueue->sqid, $node->nid);
-  if ($js) {
+  // Provide a response if this is javascript.
+  if (!empty($_POST['js'])) {
     if (isset($_GET['tab'])) {
       nodequeue_js_output(t('Remove from queue'),
         url("admin/content/nodequeue/$queue->qid/remove-node/$subqueue->sqid/$node->nid", "tab"),
-        nodequeue_subqueue_size_text($queue->size, $queue->subqueue[$sqid]->count + 1, FALSE),
+        nodequeue_subqueue_size_text($queue->size, min($subqueue->count + 1, $queue->size), FALSE),
         $subqueue->sqid);
     }
     else {
@@ -306,20 +311,21 @@ function nodequeue_admin_add_node($queue, $subqueue, $node) {
  * Page callback to remove a node from a queue.
  */
 function nodequeue_admin_remove_node($queue, $subqueue, $node) {
-  $js = !empty($_POST['js']);
-  $queue->subqueue[$sqid]->count = nodequeue_get_subqueue_count($subqueue->sqid);
-
   nodequeue_subqueue_remove_node($subqueue->sqid, $node->nid);
+
+  // Provide a response if this is javascript.
+  if (!empty($_POST['js'])) {
     if (isset($_GET['tab'])) {
       nodequeue_js_output(t('Add to queue'),
         url("admin/content/nodequeue/$queue->qid/add/$subqueue->sqid/$node->nid", "tab"),
-        nodequeue_subqueue_size_text($queue->size, $queue->subqueue[$sqid]->count - 1, FALSE),
+        nodequeue_subqueue_size_text($queue->size, $subqueue->count - 1, FALSE),
         $subqueue->sqid);
     }
     else {
       nodequeue_js_output(nodequeue_title_substitute($queue->link, $queue, $subqueue),
         url("admin/content/nodequeue/$queue->qid/add/$subqueue->sqid/$node->nid"));
     }
+  }
   // There should always be a destination set for this, so just goto wherever.
   drupal_goto();
 }
@@ -341,8 +347,6 @@ function nodequeue_node_tab($node, $queues) {
   );
   $subqueues = nodequeue_get_subqueues_by_node($queues, $node);
 
-  // Load the sizes of the queues we're using.
-  nodequeue_set_subqueue_counts($subqueues);
   nodequeue_set_subqueue_positions($subqueues, $node->nid);
 
   $rows = array();
@@ -367,9 +371,9 @@ function nodequeue_node_tab($node, $queues) {
     $rows[] = array(
       array(
         'class' => 'nodequeue-title',
-        'data' => check_plain(nodequeue_api_subqueue_title($queue, $subqueue)),
+        'data' => check_plain($subqueue->title),
       ),
-      array('class' => 'nodequeue-max-nodes', 'data' => $queue->size),
+      array('class' => 'nodequeue-max-nodes', 'data' => $queue->size ? $queue->size : t('Infinite')),
       array(
         'id' => 'nodequeue-count-' . $subqueue->sqid,
         'class' => 'nodequeue-in-queue',
@@ -396,24 +400,27 @@ function nodequeue_view_queues() {
     return t('No node queues exist.');
   }
 
+  $qids = array();
   // For every queue that has exactly 1 subqueue,
   foreach ($queues as $queue) {
-    if (count($queue->subqueue) == 1) {
-      $subqueues[$queue->current] = $queue->subqueue[$queue->current];
+    if ($queue->subqueues == 1) {
+      $qids[] = $queue->qid;
     }
   }
 
-  if (isset($subqueues)) {
-    nodequeue_set_subqueue_counts($subqueues);
+  $subqueues = nodequeue_load_subqueues_by_queue($qids);
+  // Relate all the subqueues we loaded back to our queues.
+  foreach ($subqueues as $subqueue) {
+    $queues[$subqueue->qid]->subqueue = $subqueue;
   }
 
   $header = array(t('Title'), t('Max nodes'), t('Subqueues'), t('Operation'));
 
   $rows = array();
   foreach ($queues as $queue) {
-    $sub_text = count($queue->subqueue);
+    $sub_text = $queue->subqueues;
     if ($sub_text == 1) {
-      $sub_text .= " (" . nodequeue_subqueue_size_text($queue->size, $subqueues[$queue->current]->count) . ")";
+      $sub_text .= " (" . nodequeue_subqueue_size_text($queue->size, $queue->subqueue->count) . ")";
     }
 
     $rows[] = array(
@@ -434,16 +441,16 @@ function nodequeue_view_queues() {
  * Display a list of subqueues for a queue and their sizes
  */
 function nodequeue_view_subqueues($queue) {
-  // Fetch all of the queues.
-  nodequeue_set_subqueue_counts($queue->subqueue);
+  // Fetch all of the subqueues.
+  $subqueues = nodequeue_load_subqueues_by_queue($queue->qid);
 
   $header = array(t('Title'), t('In queue'), t('Operation'));
 
   $rows = array();
-  foreach ($queue->subqueue as $subqueue) {
+  foreach ($subqueues as $subqueue) {
     $sub_text = nodequeue_subqueue_size_text($queue->size, $subqueue->count, FALSE);
     $rows[] = array(
-      array('class' => 'nodequeue-title', 'data' => nodequeue_api_subqueue_title($queue, $subqueue)),
+      array('class' => 'nodequeue-title', 'data' => check_plain($subqueue->title)),
       array('class' => 'nodequeue-subqueues', 'data' => $sub_text),
       array('class' => 'nodequeue-operation', 'data' => l(t('View'), "admin/content/nodequeue/$queue->qid/view/$subqueue->sqid"))
     );
@@ -477,13 +484,6 @@ class nodequeue_queue {
   function nodequeue_queue($type) {
     $this->owner = $type;
   }
-}
-
-/**
- * Generate a list of queue types that can be added.
- */
-function nodequeue_add_queue_type() {
-
 }
 
 /**
@@ -532,7 +532,7 @@ function nodequeue_edit_queue_form($queue) {
     '#default_value' => $queue->link,
     '#size' => 40,
     '#maxlength' => 40,
-    '#description' => t('If you want a link to add a node to a queue in the "links" section (next to "add new comment"), enter the text here. If left blank no link will be given; note that enabling this feature for any queue will cause an extra query to be run every time a node is loaded.'),
+    '#description' => t('If you want a link to add a node to a queue in the "links" section (next to "add new comment"), enter the text here. If left blank no link will be given; note that enabling this feature for any queue will cause an extra query to be run every time a node is loaded. "%subqueue" will be replaced with the subqueue title, if applicable.'),
   );
 
   $form['link_remove'] = array(
@@ -599,9 +599,9 @@ function nodequeue_edit_queue_form($queue) {
     '#value' => $queue->reference,
   );
 
-  $form['subqueue'] = array(
+  $form['subqueues'] = array(
     '#type' => 'value',
-    '#value' => $queue->subqueue,
+    '#value' => $queue->subqueues,
   );
 
   if (isset($queue->qid)) {
@@ -711,24 +711,29 @@ function nodequeue_admin_view($queue, $sqid = NULL) {
   $qid = $queue->qid;
 
   // If the queue has just one subqueue, it gets special treatment.
-  if (!$sqid && count($queue->subqueue) == 1) {
+  if (!$sqid) {
+    if ($queue->subqueues == 1) {
+      $subqueues = nodequeue_load_subqueues_by_queue($queue->qid);
+      $subqueue = array_shift($subqueues);
+    }
+    else {
+      // display subqueue list page.
+      return nodequeue_view_subqueues($queue);
+    }
     $sqid = $queue->current;
   }
   else if ($sqid) {
     // Adjust properties of the page so our subqueue is in the right
     // visual place.
+    $subqueue = nodequeue_load_subqueue($sqid);
     drupal_set_title(t("Subqueue '@title'", 
-      array('@title' => nodequeue_api_subqueue_title($queue, $queue->subqueue[$sqid]))));
+      array('@title' => $subqueue->title)));
     $breadcrumb = drupal_get_breadcrumb();
     $breadcrumb[] = l($queue->title, "admin/content/nodequeue/$queue->qid");
     drupal_set_breadcrumb($breadcrumb);
   }
 
-  if (!$sqid) {
-    // display subqueue list page.
-    return nodequeue_view_subqueues($queue);
-  }
-  return nodequeue_admin_view_subqueue($queue, $queue->subqueue[$sqid]);
+  return nodequeue_admin_view_subqueue($queue, $subqueue);
 }
 
 /**
@@ -936,7 +941,7 @@ function nodequeue_clear_confirm($queue, $subqueue) {
   $form['sqid'] = array('#type' => 'value', '#value' => $subqueue->sqid);
   $form['qid'] = array('#type' => 'value', '#value' => $queue->qid);
   return confirm_form($form,
-    t('Clearing queue "%s" is irreversible. You sure?', array('%s' => nodequeue_api_subqueue_title($queue, $subqueue))),
+    t('Clearing queue "%s" is irreversible. You sure?', array('%s' => $subqueue->title)),
     $_GET['destination'] ? $_GET['destination'] : "admin/content/nodequeue/$queue->qid/view/$subqueue->sqid",
     t('This action cannot be undone.'),
     t('Clear Queue'), t('Cancel')
@@ -1137,7 +1142,7 @@ function nodequeue_load_queues($qids) {
 
   if (!empty($to_load)) {
     $load_text = implode(', ', $to_load);
-    $result = db_query("SELECT * FROM {nodequeue_queue} WHERE qid IN (%s)", $load_text);
+    $result = db_query("SELECT q.*, COUNT(s.sqid) AS subqueues FROM {nodequeue_queue} q LEFT JOIN {nodequeue_subqueue} s ON q.qid = s.qid WHERE q.qid IN (%s) GROUP BY q.qid", $load_text);
     while ($queue = db_fetch_object($result)) {
       $cache[$queue->qid] = $queue;
     }
@@ -1151,19 +1156,8 @@ function nodequeue_load_queues($qids) {
     while ($obj = db_fetch_object($result)) {
       $cache[$obj->qid]->types[] = $obj->type;
     }
-
-    $result = db_query("SELECT * FROM {nodequeue_subqueue} WHERE qid IN (%s)", $load_text);
-    while ($obj = db_fetch_object($result)) {
-      // Default the first one in the db to the current queue.
-      if (!isset($cache[$obj->qid]->current)) {
-        $cache[$obj->qid]->current = $obj->sqid;
-      }
-      // Sometimes we want to get to subqueues by reference, sometimes by sqid.
-      // sqid is always unique, but reference is sometimes more readily available.
-      $cache[$obj->qid]->subqueue[$obj->sqid] = $obj;
-      $cache[$obj->qid]->sq_reference[$obj->reference] = &$cache[$obj->qid]->subqueue[$obj->sqid];
-    }
   }
+
   foreach ($qids as $qid) {
     if (isset($cache[$qid])) {
       $queues[$qid] = $cache[$qid];
@@ -1181,6 +1175,151 @@ function nodequeue_load_queues($qids) {
 function nodequeue_load($qid) {
   $queues = nodequeue_load_queues(array($qid));
   return array_shift($queues);
+}
+
+/**
+ * Load a list of subqueues
+ *
+ * This exists to provide a way of loading a bunch of queues with
+ * the fewest queries. Loading 5 queues results in only 4 queries,
+ * not 20. This also caches queues so that they don't get loaded
+ * repeatedly.
+ *
+ * @param $sqids
+ *   An array of subqueue IDs to load.
+ */
+function nodequeue_load_subqueues($sqids) {
+  static $cache = array();
+  $to_load = array();
+
+  foreach ($sqids as $sqid) {
+    if (!isset($cache[$sqid])) {
+      $to_load[] = $sqid;
+    }
+  }
+
+  if (!empty($to_load)) {
+    $load_text = implode(', ', $to_load);
+
+    $result = db_query("SELECT s.*, COUNT(n.position) AS count FROM {nodequeue_subqueue} s LEFT JOIN {nodequeue_nodes} n ON n.sqid = s.sqid WHERE s.sqid IN (%s) GROUP BY s.sqid", $load_text);
+    while ($obj = db_fetch_object($result)) {
+      // Sometimes we want to get to subqueues by reference, sometimes by sqid.
+      // sqid is always unique, but reference is sometimes more readily available.
+      $cache[$obj->sqid] = $obj;
+    }
+  }
+
+  foreach ($sqids as $sqid) {
+    if (isset($cache[$sqid])) {
+      $subqueues[$sqid] = $cache[$sqid];
+    }
+  }
+  return $subqueues;
+}
+
+/**
+ * Load a single subqueue.
+ *
+ * @param $sqid
+ *   The subqueue ID to load.
+ */
+function nodequeue_load_subqueue($sqid) {
+  $subqueues = nodequeue_load_subqueues(array($sqid));
+  if ($subqueues) {
+    return array_shift($subqueues);
+  }
+
+}
+
+/**
+ * Load the entire set of subqueues for a queue.
+ *
+ * This will load the entire set of subqueues for a given queue (and can
+ * respect the pager, if desired). It does NOT cache the subqueues like
+ * nodequeue_load_subqueues does, so beware of this mixed caching.
+ *
+ * @param $qids
+ *   A $qid or array of $qids
+ * @param $page_size
+ *   If non-zero, use the pager_query and limit the page-size to the parameter.
+ */
+function nodequeue_load_subqueues_by_queue($qids, $page_size = 0) {
+  if (is_numeric($qids)) {
+    $qids = array($qids);
+  }
+
+  $query = "SELECT s.*, COUNT(n.position) AS count FROM {nodequeue_subqueue} s LEFT JOIN {nodequeue_nodes} n ON n.sqid = s.sqid WHERE s.qid IN (" . implode(', ', array_fill(0, count($qids), '%d')). ") GROUP BY s.sqid";
+  if ($page_size) {
+    $result = pager_query($query, $page_size, 0, $qids);
+  }
+  else {
+    $result = db_query($query, $qids);
+  }
+
+  $subqueues = array();
+
+  while ($subqueue = db_fetch_object($result)) {
+    $subqueues[$subqueue->sqid] = $subqueue;
+  }
+
+  return $subqueues;
+}
+
+/**
+ * Load a set of subqueues by reference.
+ *
+ * This can be used to load a set of subqueues by reference; it will primarily
+ * be used by plugins that are managing subqueues.
+ *
+ * @param $references
+ *   A keyed array of references to load. The key is the $qid and each value
+ *   is another array of references.
+ */
+function nodequeue_load_subqueues_by_reference($references) {
+  static $cache = array();
+  $subqueues = array();
+
+  // build strings for the query based upon the qids and references.
+  $keys = $values = array();
+  foreach ($references as $qid => $qid_references) {
+    $keys[$qid] = array();
+    $qid_values = array();
+    foreach ($qid_references as $reference) {
+      // If we already have this qid/reference combo cached, don't add it to
+      // our little list.
+      if (isset($cache[$qid][$reference])) {
+        $subqueues[$cache[$qid][$reference]->sqid] = $cache[$qid][$reference];
+      }
+      else {
+        $keys[$qid][] = "'%s'";
+        $qid_values[] = $reference;
+      }
+    }
+    if (!empty($keys[$qid])) {
+      $values = array_merge($values, array($qid), $qid_values);
+    }
+    else {
+      unset($keys[$qid]);
+    }
+  }
+
+  if (!empty($keys)) {
+    $where = '';
+    foreach ($keys as $key_list) {
+      if ($where) {
+        $where .= ' OR ';
+      }
+      $where .= 's.qid = %d AND s.reference IN (' . implode(', ', $key_list) . ')';
+    }
+
+    $result = db_query("SELECT s.*, COUNT(n.position) AS count FROM {nodequeue_subqueue} s LEFT JOIN {nodequeue_nodes} n ON n.sqid = s.sqid WHERE $where GROUP BY s.sqid", $values);
+
+    while ($subqueue = db_fetch_object($result)) {
+      $cache[$subqueue->qid][$subqueue->reference] = $subqueues[$subqueue->sqid] = $subqueue;
+    }
+  }
+
+  return $subqueues;  
 }
 
 /**
@@ -1222,8 +1361,14 @@ function nodequeue_save(&$queue) {
   }
 
   if (isset($queue->add_subqueue) && is_array($queue->add_subqueue)) {
-    foreach ($queue->add_subqueue as $reference) {
-      nodequeue_add_subqueue($queue, $reference);
+    foreach ($queue->add_subqueue as $reference => $title) {
+      // If reference is unset it should be set to the qid; this is generally
+      // used for a single subqueue; setting the reference to the qid makes
+      // it easy to find that one subqueue.
+      if ($reference == 0) {
+        $reference = $queue->qid;
+      }
+      nodequeue_add_subqueue($queue, $title, $reference);
     }
   }
   return $queue->qid;
@@ -1249,9 +1394,10 @@ function nodequeue_delete($qid) {
  *   A reference that uniquely identifies this subqueue. If NULL it will
  *   be assigned to the sqid.
  */
-function nodequeue_add_subqueue(&$queue, $reference = NULL) {
+function nodequeue_add_subqueue(&$queue, $title, $reference = NULL) {
+  // TODO: Need to add subqueue title here.
   $sqid = db_next_id('{nodequeue_subqueue}_sqid');
-  if (!isset($reference)) {
+  if (empty($reference)) {
     $reference = $sqid;
   }
 
@@ -1259,13 +1405,21 @@ function nodequeue_add_subqueue(&$queue, $reference = NULL) {
   $subqueue->sqid = $sqid;
   $subqueue->reference = $reference;
   $subqueue->qid = $queue->qid;
+  $subqueue->title = $title;
 
-  $queue->subqueue[$sqid] = &$subqueue;
-  $queue->sq_reference[$reference] = &$subqueue;
-
-  db_query("INSERT INTO {nodequeue_subqueue} (qid, sqid, reference) VALUES (%d, %d, '%s')", $queue->qid, $sqid, $reference);
+  db_query("INSERT INTO {nodequeue_subqueue} (qid, sqid, reference, title) VALUES (%d, %d, '%s', '%s')", $queue->qid, $sqid, $reference, $title);
 
   return $subqueue;
+}
+
+/**
+ * Change the title of a subqueue.
+ *
+ * Note that only the title of a subqueue is changeable; it can change to
+ * reflect updates in taxonomy term names, for example.
+ */
+function nodequeue_subqueue_update_title($sqid, $title) {
+  db_query("UPDATE {nodequeue_subqueue} SET title = '%s' WHERE $sqid = %d", $title, $sqid);
 }
 
 /**
@@ -1289,23 +1443,16 @@ function nodequeue_remove_subqueue($sqid) {
  * @param $nid
  *   The node ID
  */
-function nodequeue_subqueue_add($queue, $sqid, $nid) {
+function nodequeue_subqueue_add($queue, $subqueue, $nid) {
   // If adding this would make the queue too big, pop the front node
   // (or nodes) out.
 
-  $subqueue = $queue->subqueue[$sqid];
   if ($queue->size) {
     // 0 means infinity so never do this if false
     nodequeue_check_subqueue_size($queue, $subqueue, $queue->size - 1);
   }
 
-  // Get the number of items in the subqueue if it's not already loaded.
-  // Save us a query.
-  if (!isset($subqueue->count)) {
-    $subqueue->count = nodequeue_get_subqueue_count($sqid);
-  }
-
-  db_query("INSERT INTO {nodequeue_nodes} (sqid, qid, nid, position, timestamp) VALUES (%d, %d, %d, %d, %d)", $sqid, $queue->qid, $nid, $subqueue->count + 1, time());
+  db_query("INSERT INTO {nodequeue_nodes} (sqid, qid, nid, position, timestamp) VALUES (%d, %d, %d, %d, %d)", $subqueue->sqid, $queue->qid, $nid, $subqueue->count + 1, time());
 }
 
 /**
@@ -1366,10 +1513,6 @@ function nodequeue_check_subqueue_size($queue, &$subqueue, $size = NULL) {
     $size = $queue->size;
   }
 
-  if (!isset($subqueue->count)) {
-    $subqueue->count = nodequeue_get_subqueue_count($subqueue->sqid);
-  }
-
   if ($subqueue->count > $size) {
     nodequeue_subqueue_remove($subqueue->sqid, 1, $subqueue->count - $size);
     $subqueue->count = $size;
@@ -1386,9 +1529,8 @@ function nodequeue_check_subqueue_sizes($queue) {
     return;
   }
 
-  nodequeue_set_subqueue_counts($queue->subqueue);
-
-  foreach ($queue->subqueue as $subqueue) {
+  $subqueues = nodequeue_load_subqueues_by_queue($queue->qid);
+  foreach ($subqueues as $subqueue) {
     nodequeue_check_subqueue_size($queue, $subqueue);
   }
 }
@@ -1411,9 +1553,6 @@ function nodequeue_queue_swap($subqueue, $pos1, $pos2) {
  * Move a position within a subqueue up by one.
  */
 function nodequeue_queue_up($subqueue, $position) {
-  if (!isset($subqueue->count)) {
-    $subqueue->count = nodequeue_get_subqueue_count($subqueue->sqid);
-  }
   if ($position < 2 || $position > $subqueue->count)
     return;
   nodequeue_queue_swap($subqueue, $position - 1, $position);
@@ -1423,9 +1562,6 @@ function nodequeue_queue_up($subqueue, $position) {
  * Move a position within a subqueue down by one.
  */
 function nodequeue_queue_down($subqueue, $position) {
-  if (!isset($subqueue->count)) {
-    $subqueue->count = nodequeue_get_subqueue_count($subqueue->sqid);
-  }
   if ($position < 1 || $position >= $subqueue->count)
     return;
   nodequeue_queue_swap($subqueue, $position + 1, $position);
@@ -1435,9 +1571,6 @@ function nodequeue_queue_down($subqueue, $position) {
  * Move an item to the front of the queue.
  */
 function nodequeue_queue_front($subqueue, $position) {
-  if (!isset($subqueue->count)) {
-    $subqueue->count = nodequeue_get_subqueue_count($subqueue->sqid);
-  }
   if ($position < 2 || $position > $subqueue->count)
     return;
   $entry = db_fetch_object(db_query("SELECT * FROM {nodequeue_nodes} WHERE sqid= %d AND position = %d", $subqueue->sqid, $position));
@@ -1450,9 +1583,6 @@ function nodequeue_queue_front($subqueue, $position) {
  * Move an item to the back of the queue.
  */
 function nodequeue_queue_back($subqueue, $position) {
-  if (!isset($subqueue->count)) {
-    $subqueue->count = nodequeue_get_subqueue_count($subqueue->sqid);
-  }
   if ($position < 1 || $position >= $subqueue->count)
     return;
   $entry = db_fetch_object(db_query("SELECT * FROM {nodequeue_nodes} WHERE sqid = %d AND position = %d", $subqueue->sqid, $position));
@@ -1481,26 +1611,6 @@ function nodequeue_set_subqueue_positions(&$subqueues, $nid) {
   }
 }
 
-/**
- * Get the number of items in the referenced subqueue.
- */
-function nodequeue_get_subqueue_count($sqid) {
-  return db_result(db_query("SELECT COUNT(*) AS num FROM {nodequeue_nodes} WHERE sqid = %d", $sqid));
-}
-
-/**
- * Set the count field on an array of subqueues. This array of subqueues
- * should be keyed by sqid.
- */
-function nodequeue_set_subqueue_counts(&$subqueues) {
-  // Get all the counts in one swell foop.
-  $result = db_query("SELECT sqid, COUNT(*) AS num FROM {nodequeue_nodes} WHERE sqid IN (%s) GROUP BY sqid", implode(', ', array_keys($subqueues)));
-
-  while ($count = db_fetch_object($result)) {
-    $subqueues[$count->sqid]->count = $count->num;
-  }
-}
-
 // --------------------------------------------------------------------------
 // Helper module API -- ask the owner module for information.
 
@@ -1515,20 +1625,18 @@ function nodequeue_set_subqueue_counts(&$subqueues) {
  */
 function nodequeue_get_subqueues_by_node($queues, $node) {
   // Determine which subqueues are valid for each queue.
-  $subqueues = array();
+  $references= array();
   foreach ($queues as $queue) {
-    $result = nodequeue_api_subqueues($queue, $node);
-    if (is_array($result)) {
-      // This construct retains our numeric keys where array_merge wouldn't.
-      $subqueues += $result;
+    if ($result = nodequeue_api_subqueues($queue, $node)) {
+      $references[$queue->qid] = is_array($result) ? $result : array($result);
     }
   }
 
-  if (empty($subqueues)) {
+  if (empty($references)) {
     return;
   }
 
-  return $subqueues;
+  return nodequeue_load_subqueues_by_reference($references);
 }
 
 /**
@@ -1570,8 +1678,8 @@ function nodequeue_nodequeue_info() {
 function nodequeue_nodequeue_form_submit(&$queue, $form) {
   // This will add a single subqueue to our new queue.
   if (!isset($queue->qid) && !isset($queue->add_subqueue)) {
-    // A NULL will set the reference to the sqid of the queue.
-    $queue->add_subqueue = array(NULL);
+    // A 0 will set the reference to the sqid of the queue.
+    $queue->add_subqueue = array(0 => $queue->title);
   }
 }
 
@@ -1706,34 +1814,11 @@ function nodequeue_api_queue_form_submit_finish($queue, $form_values) {
 function nodequeue_api_subqueues(&$queue, $node) {
   $function = $queue->owner . "_nodequeue_subqueues";
   // This will return an array of references.
-  $subqueues = array();
   if (function_exists($function)) {
     return $function($queue, $node);
   }
   else {
-    $subqueues[$queue->subqueue[$queue->current]->sqid] = $queue->subqueue[$queue->current];
-  }
-
-  return $subqueues;
-}
-
-/**
- * Get the title for a subqueue. Defaults to the queue's title if not
- * implemented.
- *
- * @param $queue
- *   The queue being edited.
- * @param $subqueue
- *   The form. This may be modified.
- */
-function nodequeue_api_subqueue_title($queue, $subqueue) {
-  $function = $queue->owner . "_nodequeue_subqueue_title";
-  // This will return an array of references.
-  if (function_exists($function)) {
-    return $function($queue, $subqueue);
-  }
-  else {
-    return $queue->title;
+    return $queue->qid;
   }
 }
 
@@ -1745,7 +1830,13 @@ function nodequeue_api_info() {
   return module_invoke_all('nodequeue_info');
 }
 
+/**
+ * Substitute the subqueue title into some others tring.
+ *
+ * This function does NOT check_plain the title! The output MUST be checked
+ * after this is complete.
+ */
 function nodequeue_title_substitute($text, $queue, $subqueue) {
-  $text = str_replace('%subqueue', nodequeue_api_subqueue_title($queue, $subqueue), $text);
+  $text = str_replace('%subqueue', $subqueue->title, $text);
   return $text;
 }

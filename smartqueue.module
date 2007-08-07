@@ -80,18 +80,27 @@ function smartqueue_taxonomy_nodequeue_subqueues(&$queue, $node) {
   // Because of how we built this, the last one will always be all zeros. Lose it.
   array_pop($references);
 
-  foreach ($references as $reference) {
-    if (!isset($queue->sq_reference[$reference])) {
-      $subqueue = nodequeue_add_subqueue($queue, $reference);
-    }
-    else {
-      $subqueue = $queue->sq_reference[$reference];
-    }
-    $subqueues[$subqueue->sqid] = $subqueue;
+  // We're returning an array of references for efficiency, but we also have
+  // to check to see if the references we've generated exist. If they don't,
+  // we have to create them.
+  $exists = array();
+  $subqueues = nodequeue_load_subqueues_by_reference(array($queue->qid => $references));
+  foreach ($subqueues as $subqueue) {
+    $exists[$subqueue->reference] = TRUE;
   }
-  return $subqueues;
+
+  foreach ($references as $reference) {
+    if (empty($exists[$reference])) {
+      nodequeue_add_subqueue($queue, smartqueue_taxonomy_nodequeue_subqueue_title($queue, $reference), $reference);
+    }
+  }
+  return $references;
 }
 
+/**
+ * Build an array of strings that represents all of the possible term
+ * combinations
+ */
 function smartqueue_build_string($arrays) {
   $array = array_shift($arrays);
   $term = '';
@@ -111,9 +120,9 @@ function smartqueue_build_string($arrays) {
   return $strings;
 }
 
-function smartqueue_taxonomy_nodequeue_subqueue_title($queue, $subqueue) {
+function smartqueue_taxonomy_nodequeue_subqueue_title($queue, $reference) {
   $vids = explode('-', $queue->reference);
-  $tids = explode('-', $subqueue->reference);
+  $tids = explode('-', $reference);
   foreach ($vids as $vid) {
     $tid = array_shift($tids);
     // $tid can be 0, specifically meaning this term is unset.
@@ -125,6 +134,9 @@ function smartqueue_taxonomy_nodequeue_subqueue_title($queue, $subqueue) {
   return implode('-', $titles);
 }
 
+/**
+ * Get a list of terms
+ */
 function smartqueue_taxonomy_get_terms($vid) {
   static $cache = array();
   if (!isset($cache[$vid])) {
@@ -139,3 +151,4 @@ function smartqueue_taxonomy_get_terms($vid) {
 
 // TODO:
 // Implement hook_taxonomy to delete subqueues when terms are deleted.
+// And to update titles when taxonomy terms are changed.

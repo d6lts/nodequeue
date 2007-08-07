@@ -41,7 +41,10 @@ function nodequeue_install() {
           sqid int(10) unsigned PRIMARY KEY,
           qid int(10) unsigned NOT NULL,
           reference varchar(255) default 0,
-          KEY {nodequeue_subqueue}_qid_idx (qid)
+          title varchar(255) default '',
+          KEY {nodequeue_subqueue}_qid_idx (qid),
+          KEY {nodequeue_subqueue}_reference_idx (reference),
+          KEY {nodequeue_subqueue}_title_idx (title)
         )/*!40100 DEFAULT CHARACTER SET utf8 */"); 
 
         db_query("CREATE TABLE if not exists {nodequeue_nodes} (
@@ -107,6 +110,7 @@ function nodequeue_install() {
 function nodequeue_uninstall() {
   $tables = array(
     'nodequeue_queue',
+    'nodequeue_subqueue',
     'nodequeue_roles',
     'nodequeue_types',
     'nodequeue_nodes',
@@ -173,6 +177,10 @@ function nodequeue_update_5201() {
           sqid int(10) unsigned PRIMARY KEY,
           qid int(10) unsigned NOT NULL,
           reference varchar(255) default 0
+          title varchar(255) default '',
+          KEY {nodequeue_subqueue}_qid_idx (qid),
+          KEY {nodequeue_subqueue}_reference_idx (reference),
+          KEY {nodequeue_subqueue}_title_idx (title)
         )/*!40100 DEFAULT CHARACTER SET utf8 */");
       break;
     case 'pgsql':
