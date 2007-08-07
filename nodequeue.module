@@ -463,29 +463,6 @@ function nodequeue_view_subqueues($queue) {
   return  $output;
 }
 
-
-/**
- * The nodequeue queue class; the constructor makes it so we don't have to
- * always check to see if our variables are empty or not.
- */
-class nodequeue_queue {
-  var $title = '';
-  var $size = 0;
-  var $link = '';
-  var $remove_link = '';
-  var $roles = array();
-  var $types = array();
-  var $show_in_links = TRUE;
-  var $show_in_tab = TRUE;
-  var $show_in_ui = TRUE;
-  var $reference = 0;
-
-  var $subqueue = array();
-  function nodequeue_queue($type) {
-    $this->owner = $type;
-  }
-}
-
 /**
  * Add or edit a queue.
  */
@@ -960,6 +937,35 @@ function nodequeue_clear_confirm_submit($formid, $form) {
 
 // --------------------------------------------------------------------------
 // Nodequeue manipulation API.
+
+/**
+ * @defgroup nodequeue_api
+ * @{
+ * Access to the internals of nodequeues are handled primarily through these
+ * API functions. They allow easy loading of queues for manipulation.
+ */
+
+/**
+ * The nodequeue queue class; the constructor makes it so we don't have to
+ * always check to see if our variables are empty or not.
+ */
+class nodequeue_queue {
+  var $title = '';
+  var $size = 0;
+  var $link = '';
+  var $remove_link = '';
+  var $roles = array();
+  var $types = array();
+  var $show_in_links = TRUE;
+  var $show_in_tab = TRUE;
+  var $show_in_ui = TRUE;
+  var $reference = 0;
+
+  var $subqueue = array();
+  function nodequeue_queue($type) {
+    $this->owner = $type;
+  }
+}
 
 /**
  * Return TRUE If the specified account has access to manipulate this queue.
@@ -1611,9 +1617,6 @@ function nodequeue_set_subqueue_positions(&$subqueues, $nid) {
   }
 }
 
-// --------------------------------------------------------------------------
-// Helper module API -- ask the owner module for information.
-
 /**
  * Get a list of valid subqueues for a node, along with the position of the node.
  *
@@ -1659,6 +1662,22 @@ function nodequeue_subqueue_size_text($max, $count, $long = TRUE) {
   }
   return $message;
 }
+
+/**
+ * Substitute the subqueue title into some others tring.
+ *
+ * This function does NOT check_plain the title! The output MUST be checked
+ * after this is complete.
+ */
+function nodequeue_title_substitute($text, $queue, $subqueue) {
+  $text = str_replace('%subqueue', $subqueue->title, $text);
+  return $text;
+}
+
+/**
+ * @} End of defgroup "nodequeue_api"
+ */
+
 // --------------------------------------------------------------------------
 // Hooks to implement the default nodequeue type.
 
@@ -1828,15 +1847,4 @@ function nodequeue_api_subqueues(&$queue, $node) {
  */
 function nodequeue_api_info() {
   return module_invoke_all('nodequeue_info');
-}
-
-/**
- * Substitute the subqueue title into some others tring.
- *
- * This function does NOT check_plain the title! The output MUST be checked
- * after this is complete.
- */
-function nodequeue_title_substitute($text, $queue, $subqueue) {
-  $text = str_replace('%subqueue', $subqueue->title, $text);
-  return $text;
 }
