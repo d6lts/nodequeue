@@ -176,7 +176,7 @@ function nodequeue_update_5201() {
       $ret[] = update_sql("CREATE TABLE if not exists {nodequeue_subqueue} (
           sqid int(10) unsigned PRIMARY KEY,
           qid int(10) unsigned NOT NULL,
-          reference varchar(255) default 0
+          reference varchar(255) default 0,
           title varchar(255) default '',
           KEY {nodequeue_subqueue}_qid_idx (qid),
           KEY {nodequeue_subqueue}_reference_idx (reference),
@@ -187,12 +187,10 @@ function nodequeue_update_5201() {
       break;
   }
 
-  $ret[] = update_sql("CREATE INDEX {nodequeue_subqueue}_qid_idx ON {nodequeue_subqueue} (qid)");
-
   // Populate the nodequeue_subqueue table.
   $result = db_query("SELECT * FROM {nodequeue_queue}");
   while ($queue = db_fetch_object($result)) {
-    $ret[] = update_sql("INSERT INTO {nodequeue_subqueue} (sqid, qid, reference) VALUES ($queue->qid, $queue->qid, $queue->qid)");
+    $ret[] = update_sql("INSERT INTO {nodequeue_subqueue} (sqid, qid, reference, title) VALUES ($queue->qid, $queue->qid, $queue->qid, $queue->title)");
   }
 
   if (isset($queue)) {
