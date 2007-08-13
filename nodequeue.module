@@ -1124,6 +1124,7 @@ function nodequeue_get_all_qids($page_size = 25, $pager_element = 0) {
       $result = db_query($sql, $count_sql);
     }
 
+    $qids = array();
     while ($qid = db_fetch_object($result)) {
       $qids[$qid->qid] = $qid->qid;
     }
