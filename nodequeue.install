@@ -9,6 +9,7 @@ function nodequeue_install() {
         db_query("CREATE TABLE if not exists {nodequeue_queue} (
           qid int(10) unsigned NOT NULL PRIMARY KEY,
           title varchar(255) NOT NULL,
+          subqueue_title varchar(255) NOT NULL,
           size int(3) unsigned default '0',
           link varchar(255),
           link_remove varchar(255),
@@ -211,5 +212,11 @@ function nodequeue_update_5201() {
   $ret[] = update_sql("UPDATE {nodequeue_nodes} SET sqid = qid");
   $ret[] = update_sql("CREATE INDEX {nodequeue_nodes}_sqid_idx ON {nodequeue_nodes} (sqid, position)");
 
+  return $ret;
+}
+
+function nodequeue_update_5202() {
+  $ret = array();
+  $ret[] = db_add_column($ret, 'nodequeue_queue', 'subqueue_title', 'varchar(255)');
   return $ret;
 }

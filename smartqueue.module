@@ -24,7 +24,17 @@ function smartqueue_taxonomy_nodequeue_form($queue, &$form) {
     '#description' => t('Select which vocabularies to use; each unique combination of terms from all of these vocabularies will have a subqueue.'),
     '#options' => $options,
   );
+
+  $form['subqueue_title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Subqueue title'),
+    '#default_value' => $queue->subqueue_title,
+    '#size' => 50,
+    '#maxlength' => 64,
+    '#description' => t('What to display for the subqueue title; use %subqueue to embed the actual subqueue title. This is used to distinguish multiple nodequeues with subqueues from each other, as internal subqueue title is filled automatically.'),
+  );
   
+
   if ($queue->qid) {
     $form['placeholder']['vocabularies']['#disabled'] = TRUE;
     $form['placeholder']['vocabularies']['#default_value'] = explode('-', $queue->reference);

@@ -371,7 +371,7 @@ function nodequeue_node_tab($node, $queues) {
     $rows[] = array(
       array(
         'class' => 'nodequeue-title',
-        'data' => check_plain($subqueue->title),
+        'data' => check_plain(nodequeue_title_substitute($queue->subqueue_title, $queue, $subqueue)),
       ),
       array('class' => 'nodequeue-max-nodes', 'data' => $queue->size ? $queue->size : t('Infinite')),
       array(
@@ -489,6 +489,13 @@ function nodequeue_edit_queue_form($queue) {
     '#description' => t('Enter the name of the queue'),
   );
 
+  // This is a value; as the default nodequeue implementation has just one
+  // queue per nodequeue, this field is totally redundant. Plugins can
+  // override this.
+  $form['subqueue_title'] = array(
+    '#type' => 'value',
+    '#value' => $queue->subqueue_title,
+  );
   // The placeholder is put here so that modifiers have an easy way to put
   // additional form widgets in a prominent spot but not before the title of
   // the queue.
@@ -704,7 +711,7 @@ function nodequeue_admin_view($queue, $sqid = NULL) {
     // visual place.
     $subqueue = nodequeue_load_subqueue($sqid);
     drupal_set_title(t("Subqueue '@title'", 
-      array('@title' => $subqueue->title)));
+      array('@title' => nodequeue_title_substitute($queue->subqueue_title, $queue, $subqueue))));
     $breadcrumb = drupal_get_breadcrumb();
     $breadcrumb[] = l($queue->title, "admin/content/nodequeue/$queue->qid");
     drupal_set_breadcrumb($breadcrumb);
@@ -918,7 +925,7 @@ function nodequeue_clear_confirm($queue, $subqueue) {
   $form['sqid'] = array('#type' => 'value', '#value' => $subqueue->sqid);
   $form['qid'] = array('#type' => 'value', '#value' => $queue->qid);
   return confirm_form($form,
-    t('Clearing queue "%s" is irreversible. You sure?', array('%s' => $subqueue->title)),
+    t('Clearing queue "%s" is irreversible. You sure?', array('%s' => nodequeue_title_substitute($queue->subqueue_title, $queue, $subqueue))),
     $_GET['destination'] ? $_GET['destination'] : "admin/content/nodequeue/$queue->qid/view/$subqueue->sqid",
     t('This action cannot be undone.'),
     t('Clear Queue'), t('Cancel')
@@ -1334,13 +1341,13 @@ function nodequeue_load_subqueues_by_reference($references) {
 function nodequeue_save(&$queue) {
   if (!isset($queue->qid)) {
     $queue->qid = db_next_id("{nodequeue_queue}_qid");
-    db_query("INSERT INTO {nodequeue_queue} (qid, title, size, link, link_remove, owner, show_in_links, show_in_tab, show_in_ui, reference) VALUES (%d, '%s', %d, '%s', '%s', '%s', %d, %d, %d, '%s')", $queue->qid, $queue->title, $queue->size, $queue->link, $queue->link_remove, $queue->owner, $queue->show_in_links, $queue->show_in_tab, $queue->show_in_ui, $queue->reference);
+    db_query("INSERT INTO {nodequeue_queue} (qid, title, subuqueue_title, size, link, link_remove, owner, show_in_links, show_in_tab, show_in_ui, reference) VALUES (%d, '%s', '%s', %d, '%s', '%s', '%s', %d, %d, %d, '%s')", $queue->qid, $queue->title, $queue->subqueue_title, $queue->size, $queue->link, $queue->link_remove, $queue->owner, $queue->show_in_links, $queue->show_in_tab, $queue->show_in_ui, $queue->reference);
     if (function_exists('views_invalidate_cache')) {
       views_invalidate_cache();
     }
   }
   else {
-    db_query("UPDATE {nodequeue_queue} set size = %d, title = '%s', link = '%s', link_remove = '%s', owner = '%s', show_in_links = %d, show_in_tab = %d, show_in_ui = %d, reference = '%s' WHERE qid = %d", $queue->size, $queue->title, $queue->link, $queue->link_remove, $queue->owner, $queue->show_in_links, $queue->show_in_tab, $queue->show_in_ui, $queue->reference, $queue->qid);
+    db_query("UPDATE {nodequeue_queue} set size = %d, title = '%s', subqueue_title = '%s', link = '%s', link_remove = '%s', owner = '%s', show_in_links = %d, show_in_tab = %d, show_in_ui = %d, reference = '%s' WHERE qid = %d", $queue->size, $queue->title, $queue->subqueue_title, $queue->link, $queue->link_remove, $queue->owner, $queue->show_in_links, $queue->show_in_tab, $queue->show_in_ui, $queue->reference, $queue->qid);
     db_query("DELETE FROM {nodequeue_roles} WHERE qid = %d", $queue->qid);
     db_query("DELETE FROM {nodequeue_types} WHERE qid = %d", $queue->qid);
     if ($nodes) {
@@ -1401,7 +1408,6 @@ function nodequeue_delete($qid) {
  *   be assigned to the sqid.
  */
 function nodequeue_add_subqueue(&$queue, $title, $reference = NULL) {
-  // TODO: Need to add subqueue title here.
   $sqid = db_next_id('{nodequeue_subqueue}_sqid');
   if (empty($reference)) {
     $reference = $sqid;
@@ -1670,6 +1676,9 @@ function nodequeue_subqueue_size_text($max, $count, $long = TRUE) {
  * after this is complete.
  */
 function nodequeue_title_substitute($text, $queue, $subqueue) {
+  if (empty($text)) {
+    return $subqueue->title;
+  }
   $text = str_replace('%subqueue', $subqueue->title, $text);
   return $text;
 }
