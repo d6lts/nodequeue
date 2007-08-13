@@ -126,7 +126,7 @@ function nodequeue_views_arguments() {
       'handler' => "nodequeue_handler_arg_qtitle",
       'option' => array(
         '#type' => 'select',
-        '#options' => 'nodequeue_handler_arg_queues_all',
+        '#options' => 'nodequeue_handler_queuelist',
         '#all_ok' => TRUE,
       ),
       'help' => t('The Queue Title argument allows users to filter a view by specifying a Subqueue Title. Use the Option to restrict this to just one queue.'),
@@ -137,7 +137,7 @@ function nodequeue_views_arguments() {
       'operator' => 'views_handler_operator_andor',
       'option' => array(
         '#type' => 'select',
-        '#options' => 'nodequeue_handler_arg_queues_all',
+        '#options' => 'nodequeue_handler_queuelist',
         '#all_ok' => TRUE,
       ),
       'help' => t('Filter the view to a specific Sub Queue.'),
@@ -148,7 +148,7 @@ function nodequeue_views_arguments() {
       'operator' => 'views_handler_operator_andor',
       'option' => array(
         '#type' => 'select',
-        '#options' => 'nodequeue_handler_arg_queues_all',
+        '#options' => 'nodequeue_handler_queuelist',
       ),
       'help' => t('Filter the view to a specific Sub Queue. The subqueue reference is the ID that the subqueue is attached to; tax id for taxonomy or user id for user queues, etc.'),
     ),
