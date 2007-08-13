@@ -191,15 +191,17 @@ function nodequeue_update_5201() {
   // Populate the nodequeue_subqueue table.
   $result = db_query("SELECT * FROM {nodequeue_queue}");
   while ($queue = db_fetch_object($result)) {
-    $ret[] = update_sql("INSERT INTO {nodequeue_subqueue} (sqid, qid, reference, title) VALUES ($queue->qid, $queue->qid, $queue->qid, $queue->title)");
+    // Keep the qid so that we can update our sequence table later on.
+    $last_qid = $queue->qid;
+    $ret[] = update_sql("INSERT INTO {nodequeue_subqueue} (sqid, qid, reference, title) VALUES ($queue->qid, $queue->qid, $queue->qid, '$queue->title')");
   }
 
-  if (isset($queue)) {
+  if (isset($last_qid)) {
     // Fix the sequences
     switch ($GLOBALS['db_type']) {
       case 'mysql':
       case 'mysqli':
-        $ret[] = update_sql("INSERT INTO {sequences} (name, id) VALUES ('{nodequeue_subqueue}_sqid', $queue->qid");
+        $ret[] = update_sql("INSERT INTO {sequences} (name, id) VALUES ('{nodequeue_subqueue}_sqid', $last_qid");
         break;
       case 'pgsql':
         // I don't believe we need to do anything here.
