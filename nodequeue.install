@@ -201,7 +201,7 @@ function nodequeue_update_5201() {
     switch ($GLOBALS['db_type']) {
       case 'mysql':
       case 'mysqli':
-        $ret[] = update_sql("INSERT INTO {sequences} (name, id) VALUES ('{nodequeue_subqueue}_sqid', $last_qid");
+        $ret[] = update_sql("INSERT INTO {sequences} (name, id) VALUES ('{nodequeue_subqueue}_sqid)', $last_qid");
         break;
       case 'pgsql':
         // I don't believe we need to do anything here.
@@ -219,6 +219,6 @@ function nodequeue_update_5201() {
 
 function nodequeue_update_5202() {
   $ret = array();
-  $ret[] = db_add_column($ret, 'nodequeue_queue', 'subqueue_title', 'varchar(255)');
+  db_add_column($ret, 'nodequeue_queue', 'subqueue_title', 'varchar(255)');
   return $ret;
 }

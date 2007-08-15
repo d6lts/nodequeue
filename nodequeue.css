@@ -1,7 +1,19 @@
 /* Animated throbber */
 html.js a.nodequeue-ajax-toggle.throbbing {
-  background:url(status-active.gif) no-repeat right center;
   padding-right:18px;
+}
+
+html.js td.throbbing {
+  background:url(status-active.gif) no-repeat left center;
+  padding-left:18px;
+}
+
+.nodequeue-hide-if-not-js {
+  display: none;
+}
+
+html.js .nodequeue-hide-if-not-js {
+  display: block;
 }
 
 .nodequeue-operation {
