@@ -386,7 +386,7 @@ function nodequeue_node_tab($node, $queues) {
     $rows[] = array(
       array(
         'class' => 'nodequeue-title',
-        'data' => check_plain(nodequeue_title_substitute($queue->subqueue_title, $queue, $subqueue)),
+        'data' => l(nodequeue_title_substitute($queue->subqueue_title, $queue, $subqueue), "admin/content/nodequeue/$queue->qid/view/$subqueue->sqid"),
       ),
       array('class' => 'nodequeue-max-nodes', 'data' => $queue->size ? $queue->size : t('Infinite')),
       array(
