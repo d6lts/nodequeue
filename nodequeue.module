@@ -265,7 +265,7 @@ function nodequeue_link($type, $node = NULL, $teaser = FALSE) {
       else if ($queue->link_remove) {
         $links['nodequeue-ajax-toggle-' . $subqueue->sqid] = array(
           'title' => nodequeue_title_substitute($queue->link_remove, $queue, $subqueue),
-          'href' => "admin/content/nodequeue/$queue->qid/remove/$subqueue->sqid/$node->nid",
+          'href' => "admin/content/nodequeue/$queue->qid/remove-node/$subqueue->sqid/$node->nid",
           'attributes' => array('class' => 'nodequeue-ajax-toggle'),
           'query' => drupal_get_destination());
       }
@@ -745,35 +745,35 @@ function nodequeue_arrange_subqueue_entry($queue, $subqueue, $node) {
   $qid = $queue->qid;
   $sqid = $subqueue->sqid;
   $buttons = l(
-    theme('image', drupal_get_path('module', 'nodequeue') .'/go-up.png', t('Move up')),
+    theme('image', drupal_get_path('module', 'nodequeue') .'/images/go-up.png', t('Move up')),
     "admin/content/nodequeue/$qid/up/$sqid/$node->position",
     array(
       'title' => t('Move up'),
       'class' => 'nodequeue-move-up',
     ), drupal_get_destination(), NULL, FALSE, TRUE);
   $buttons .= l(
-    theme('image', drupal_get_path('module', 'nodequeue') .'/go-down.png', t('Move down')),
+    theme('image', drupal_get_path('module', 'nodequeue') .'/images/go-down.png', t('Move down')),
     "admin/content/nodequeue/$qid/down/$sqid/$node->position",
     array(
       'title' => t('Move down'),
       'class' => 'nodequeue-move-down',
     ), drupal_get_destination(), NULL, FALSE, TRUE);
   $buttons .= l(
-    theme('image', drupal_get_path('module', 'nodequeue') .'/go-top.png', t('Move to front')),
+    theme('image', drupal_get_path('module', 'nodequeue') .'/images/go-top.png', t('Move to front')),
     "admin/content/nodequeue/$qid/front/$sqid/$node->position",
     array(
       'title' => t('Move to front'),
       'class' => 'nodequeue-move-front',
     ), drupal_get_destination(), NULL, FALSE, TRUE);
   $buttons .= l(
-    theme('image', drupal_get_path('module', 'nodequeue') .'/go-bottom.png', t('Move to back')),
+    theme('image', drupal_get_path('module', 'nodequeue') .'/images/go-bottom.png', t('Move to back')),
     "admin/content/nodequeue/$qid/back/$sqid/$node->position",
     array(
       'title' => t('Move to back'),
       'class' => 'nodequeue-move-back',
     ), drupal_get_destination(), NULL, FALSE, TRUE);
   $buttons .= l(
-    theme('image', drupal_get_path('module', 'nodequeue') .'/user-trash.png', t('Remove from queue')),
+    theme('image', drupal_get_path('module', 'nodequeue') .'/images/delete.png', t('Remove from queue')),
     "admin/content/nodequeue/$qid/remove/$sqid/$node->position",
     array(
       'title' => t('Remove from queue'),
