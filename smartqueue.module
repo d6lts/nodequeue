@@ -159,6 +159,11 @@ function smartqueue_taxonomy_get_terms($vid) {
   return $cache[$vid];
 }
 
+
 // TODO:
 // Implement hook_taxonomy to delete subqueues when terms are deleted.
 // And to update titles when taxonomy terms are changed.
+function smartqueue_taxonomy_taxonomy($op, $type, $array = NULL) {
+  // Since this is a relatively rare operation, and I'm out of time for this
+  // project, I'm leaving this for some enterprising developer who needs this.
+}

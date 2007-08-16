@@ -32,7 +32,6 @@ function nodequeue_views_tables() {
       ),
     ),
     "filters" => array(
-      // TODO:: This filter needs some work.
       "qid" => array(
         'name' => t("NodeQueue: Queue"),
         'value' => array(
