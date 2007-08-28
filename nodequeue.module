@@ -271,6 +271,7 @@ function nodequeue_link($type, $node = NULL, $teaser = FALSE) {
       }
     }
     drupal_add_js(drupal_get_path('module', 'nodequeue') .'/nodequeue.js');
+    drupal_add_css(drupal_get_path('module', 'nodequeue') .'/nodequeue.css');
   }
   return $links;
 }
@@ -801,6 +802,7 @@ function nodequeue_arrange_subqueue($queue, $subqueue) {
 
   $body = '';
 
+  $nids = array();
   while ($node = db_fetch_object($result)) {
     $nids[$node->position] = $node->nid;
     $body .= nodequeue_arrange_subqueue_entry($queue, $subqueue, $node);
@@ -971,7 +973,12 @@ function nodequeue_arrange_subqueue_form_validate($form_id, $form_values, $form)
     // use + because it will overwrite.
     if ($form_values['added_nids']) {
       foreach (explode(',', $form_values['added_nids']) as $nid) {
-        $nids[max(array_keys($nids)) + 1] = $nid;
+        if (empty($nids)) {
+          $nids[1] = $nid;
+        }
+        else {
+          $nids[max(array_keys($nids)) + 1] = $nid;
+        }
       }
     }
     form_set_value($form['nids'], $nids);
@@ -1394,7 +1401,7 @@ function nodequeue_get_all_qids($page_size = 25, $pager_element = 0) {
  */
 function nodequeue_load_queues($qids) {
   static $cache = array();
-  $to_load = array();
+  $to_load = $queues = array();
 
   foreach ($qids as $qid) {
     if (!isset($cache[$qid])) {
@@ -2119,11 +2126,27 @@ function nodequeue_api_autocomplete($queue, $subqueue, $string) {
     return $matches;
   }
 
-  // Build the constant parts of the query.
+
   $where = "n.type IN (" . implode(', ', array_fill(0, count($queue->types), "'%s'")) . ')';
   $where_args = $queue->types;
-  $where .= " AND LOWER(n.title) LIKE LOWER('%s%%')";
-  array_push($where_args, $string);
+  
+  // Run a match to see if they're specifying by nid.
+  $preg_matches = array();
+  $match = preg_match('/\[nid: (\d+)\]/', $string, $preg_matches);
+  if (!$match) {
+    $match = preg_match('/^nid: (\d+)/', $string, $preg_matches);
+  }
+
+  if ($match) {
+    // If it found a nid via specification, reduce our resultset to just that nid.
+    $where .= " AND n.nid = %d";
+    array_push($where_args, $preg_matches[1]);
+  }
+  else {
+    // Build the constant parts of the query.
+    $where .= " AND LOWER(n.title) LIKE LOWER('%s%%')";
+    array_push($where_args, $string);
+  }
 
   // Call to the API.
   $function = $queue->owner . "_nodequeue_autocomplete";
@@ -2131,9 +2154,9 @@ function nodequeue_api_autocomplete($queue, $subqueue, $string) {
     return $function($queue, $subqueue, $string, $where, $where_args);
   }
   else {
-    $result = db_query_range(db_rewrite_sql("SELECT nid, title FROM {node} n WHERE $where"), $where_args, 0, 10);
+    $result = db_query_range(db_rewrite_sql("SELECT n.nid, n.title FROM {node} n WHERE $where"), $where_args, 0, 10);
     while ($node = db_fetch_object($result)) {
-      $matches[$node->nid] = check_plain($node->title);
+      $matches[$node->nid] = check_plain($node->title) . " [nid: $node->nid]";
     }
   }
   

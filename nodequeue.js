@@ -276,11 +276,13 @@ Drupal.nodequeue = function(base, settings) {
 
 
 Drupal.nodequeue.autoAttach = function() {
-  for (var base in Drupal.settings.nodequeue) {
-    if (!$('#'+ base + '.nodequeue-processed').size()) {
-      var settings = Drupal.settings.nodequeue[base];
-      var list = new Drupal.nodequeue(base, settings);
-      $('#'+ base).addClass('nodequeue-processed');
+  if (Drupal.settings && Drupal.settings.nodequeue) {
+    for (var base in Drupal.settings.nodequeue) {
+      if (!$('#'+ base + '.nodequeue-processed').size()) {
+        var settings = Drupal.settings.nodequeue[base];
+        var list = new Drupal.nodequeue(base, settings);
+        $('#'+ base).addClass('nodequeue-processed');
+      }
     }
   }
 
