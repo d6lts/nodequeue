@@ -25,6 +25,19 @@ Drupal.nodequeue = function(base, settings) {
   var max = function(array) {
     return Math.max.apply(Math, array);
   };
+
+  var array_rand = function(array) {
+    var i = array.length;
+    if (i == 0) return false;
+    while (--i) {
+       var j = Math.floor(Math.random() * ( i + 1 ));
+       var tempi = array[i];
+       var tempj = array[j];
+       array[i] = tempj;
+       array[j] = tempi;
+     }
+  }
+
   var maxPosition = max($(settings.order).val().split(','));
 
   this.settings = settings;
@@ -35,6 +48,19 @@ Drupal.nodequeue = function(base, settings) {
     var temp = array[a];
     array[a] = array[b];
     array[b] = temp;
+  }
+
+  var saveOrder = function(order) {
+    var new_order = '';
+    for (i in order) {
+      if (new_order) {
+        new_order += ',';
+      }
+      new_order += order[i];
+    }
+
+    $(settings.order).val(new_order);
+    $(settings.hidden).show();
   }
 
   var changeOrder = function(item, how) {
@@ -77,17 +103,8 @@ Drupal.nodequeue = function(base, settings) {
         order.push(temp);
         break;
     }
-
-    var new_order = '';
-    for (i in order) {
-      if (new_order) {
-        new_order += ',';
-      }
-      new_order += order[i];
-    }
-
-    $(settings.order).val(new_order);
-    $(settings.hidden).show();
+    
+    saveOrder(order);
   }
 
   this.changeOrder = changeOrder;
@@ -122,6 +139,38 @@ Drupal.nodequeue = function(base, settings) {
           restripeTable('#' + base);
 
           return false;
+        });
+    }
+
+    if (settings.clear_list) {
+      $(settings.clear_list + ':not(.nodequeue-processed)')
+        .addClass('nodequeue-processed')
+        .click(function() { return false; })
+        .click(function(e) {
+          $(settings.row_class).each(function() { $(this).remove() });
+          saveOrder([]);
+        });
+    }
+
+    if (settings.shuffle) {
+      $(settings.shuffle + ':not(.nodequeue-processed)')
+        .addClass('nodequeue-processed')
+        .click(function() { return false; })
+        .click(function(e) {
+          // randomize the order
+          var order = $(settings.order).val().split(',');
+          array_rand(order);
+          saveOrder(order);
+
+          // Go through the new order and move each item to the bottom.
+          // Then everything will be where it was meant to be.
+          var last = $(settings.row_class + ':last');
+          for (var i in order) {
+            var item = $('#' + settings.tr + order[i]);
+            last.after(item);
+            last = item;
+          }
+          restripeTable('#' + base);
         });
     }
 
@@ -195,6 +244,7 @@ Drupal.nodequeue = function(base, settings) {
           return false;
         });
     }
+
     if (settings.add) {
       $(settings.add + ':not(.nodequeue-processed)')
         .addClass('nodequeue-processed')
@@ -264,6 +314,7 @@ Drupal.nodequeue = function(base, settings) {
           });
           return false;
         });
+
     }
   }
 

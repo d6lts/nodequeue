@@ -878,7 +878,14 @@ function nodequeue_arrange_subqueue_form($qid, $sqid, $nids) {
 
   $form['clear'] = array(
     '#type' => 'submit',
+    '#attributes' => array('class' => 'nodequeue-clear'),
     '#value' => t('Clear queue'),
+  );
+
+  $form['shuffle'] = array(
+    '#type' => 'submit',
+    '#attributes' => array('class' => 'nodequeue-shuffle'),
+    '#value' => t('Shuffle'),
   );
 
   // Store the original order.
@@ -905,12 +912,17 @@ function nodequeue_arrange_subqueue_form($qid, $sqid, $nids) {
       
       // The button that adds an item
       'add' => 'input.nodequeue-add',
+      // The buttom to clear the queue
+      'clear_list' => 'input.nodequeue-clear',
+      // Path for ajax on adding an item
+      'shuffle' => 'input.nodequeue-shuffle',
       // Path for ajax on adding an item
       'path' => url('nodequeue/ajax/add', NULL, NULL, TRUE),
       // Which items to post when adding
       'post' => array('#edit-sqid', '#edit-add'),
       // Where to get the id of an item
       'tr' => 'nodequeue-row-',
+      'row_class' => 'tr.nodequeue-row',
       // Where to put the extra (we're storing a nid)
       'extra' => '#edit-added-nids',
       // What item to focus on ready
@@ -1026,6 +1038,9 @@ function nodequeue_arrange_subqueue_form_submit($form_id, $form_values) {
     $sql = "INSERT INTO {nodequeue_nodes} (sqid, qid, nid, position, timestamp) VALUES $sql";
     db_query($sql, $args);
     nodequeue_check_subqueue_size($queue, $subqueue);
+    if ($form_values['op'] == t('Shuffle')) {
+      nodequeue_subqueue_shuffle($subqueue);
+    }
   }
   drupal_set_message(t('The queue has been updated'));
 }
@@ -1517,6 +1532,10 @@ function nodequeue_load_subqueues_by_queue($qids, $page_size = 0) {
     $qids = array($qids);
   }
 
+  if (empty($qids)) {
+    return array();
+  }
+
   $query = "SELECT s.*, COUNT(n.position) AS count FROM {nodequeue_subqueue} s LEFT JOIN {nodequeue_nodes} n ON n.sqid = s.sqid WHERE s.qid IN (" . implode(', ', array_fill(0, count($qids), '%d')) . ") GROUP BY s.sqid";
   if ($page_size) {
     $result = pager_query($query, $page_size, 0, $qids);
@@ -1937,6 +1956,29 @@ function nodequeue_title_substitute($text, $queue, $subqueue) {
   }
   $text = str_replace('%subqueue', $subqueue->title, $text);
   return $text;
+}
+
+/**
+ * Shuffle a queue.
+ *
+ * @param $subqueue
+ *   The subqueue to shuffle. May be a sqid or the loaded object.
+ */
+function nodequeue_subqueue_shuffle($subqueue) {
+  // Load the queue
+  if (!is_object($subqueue)) {
+    $subqueue = nodequeue_load_subqueue($subqueue);
+  }
+
+  if (empty($subqueue)) {
+    return;
+  }
+
+  $count = $subqueue->count;
+  // Swap each item with another randomly picked one.
+  foreach (range(1, $count) as $i) {
+    nodequeue_queue_swap($subqueue, $i, rand(1, $count));
+  }
 }
 
 /**
