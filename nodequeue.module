@@ -1803,7 +1803,7 @@ function nodequeue_check_subqueue_size($queue, &$subqueue, $size = NULL) {
     $size = $queue->size;
   }
 
-  if ($subqueue->count > $size) {
+  if ($size && $subqueue->count > $size) {
     nodequeue_subqueue_remove($subqueue->sqid, 1, $subqueue->count - $size);
     $subqueue->count = $size;
   }
