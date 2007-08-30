@@ -1037,7 +1037,10 @@ function nodequeue_arrange_subqueue_form_submit($form_id, $form_values) {
     }
     $sql = "INSERT INTO {nodequeue_nodes} (sqid, qid, nid, position, timestamp) VALUES $sql";
     db_query($sql, $args);
-    nodequeue_check_subqueue_size($queue, $subqueue);
+    if ($queue->size) {
+        // 0 means infinity so never do this if false 
+        nodequeue_check_subqueue_size($queue, $subqueue);
+    }
     if ($form_values['op'] == t('Shuffle')) {
       nodequeue_subqueue_shuffle($subqueue);
     }
