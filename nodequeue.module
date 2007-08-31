@@ -887,7 +887,7 @@ function nodequeue_arrange_subqueue_form($queue, $sqid, $nids) {
   $form['clear'] = array(
     '#type' => 'submit',
     '#attributes' => array('class' => 'nodequeue-clear'),
-    '#value' => t('Clear queue'),
+    '#value' => t('Clear'),
   );
 
   $form['reverse_click'] = array(
@@ -1020,7 +1020,7 @@ function nodequeue_arrange_subqueue_form_validate($form_id, $form_values, $form)
  */
 function nodequeue_arrange_subqueue_form_submit($form_id, $form_values) {
   // Add a node to the queue if that's the intention.
-  if ($form_values['op'] == t('Clear queue')) {
+  if ($form_values['op'] == t('Clear')) {
     return 'admin/content/nodequeue/' . $form_values['qid'] . '/clear/' . $form_values['sqid'];
   }
 
@@ -1153,7 +1153,7 @@ function nodequeue_clear_confirm($queue, $subqueue) {
     t('Clearing queue "%s" is irreversible. You sure?', array('%s' => nodequeue_title_substitute($queue->subqueue_title, $queue, $subqueue))),
     $_GET['destination'] ? $_GET['destination'] : "admin/content/nodequeue/$queue->qid/view/$subqueue->sqid",
     t('This action cannot be undone.'),
-    t('Clear Queue'), t('Cancel')
+    t('Clear'), t('Cancel')
   );
 }
 
