@@ -110,6 +110,19 @@ Drupal.nodequeue = function(base, settings) {
     saveOrder(order);
   }
 
+  var makeOrder = function(order) {
+    // Go through the new order and move each item to the bottom.
+    // Then everything will be where it was meant to be.
+    var last = $(settings.row_class + ':last');
+    for (var i in order) {
+      var item = $('#' + settings.tr + order[i]);
+      last.after(item);
+      changed($(item));
+      last = item;
+    }
+    restripeTable('#' + base);
+  }
+
   this.changeOrder = changeOrder;
 
   var restripeTable = function(table) {
@@ -172,17 +185,7 @@ Drupal.nodequeue = function(base, settings) {
           var order = $(settings.order).val().split(',');
           array_rand(order);
           saveOrder(order);
-
-          // Go through the new order and move each item to the bottom.
-          // Then everything will be where it was meant to be.
-          var last = $(settings.row_class + ':last');
-          for (var i in order) {
-            var item = $('#' + settings.tr + order[i]);
-            last.after(item);
-            changed($(item));
-            last = item;
-          }
-          restripeTable('#' + base);
+          makeOrder(order);
         });
     }
 
@@ -195,17 +198,7 @@ Drupal.nodequeue = function(base, settings) {
           var order = $(settings.order).val().split(',');
           order.reverse();
           saveOrder(order);
-
-          // Go through the new order and move each item to the bottom.
-          // Then everything will be where it was meant to be.
-          var last = $(settings.row_class + ':last');
-          for (var i in order) {
-            var item = $('#' + settings.tr + order[i]);
-            last.after(item);
-            changed($(item));
-            last = item;
-          }
-          restripeTable('#' + base);
+          makeOrder(order);
         });
     }
 
