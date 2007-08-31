@@ -817,10 +817,10 @@ function nodequeue_arrange_subqueue($queue, $subqueue) {
   $output .= '<table id="nodequeue-table">';
   $output .= '<thead>';
   $output .= '<tr>';
-  $output .= '<th>' . t('Node') . '</th>';
-  $output .= '<th>' . t('Author') . '</th>';
-  $output .= '<th>' . t('Date') . '</th>';
-  $output .= '<th>' . t('Operation') . '</th>';
+  $output .= '<th class="nodequeue-node">' . t('Node') . '</th>';
+  $output .= '<th class="nodequeue-author">' . t('Author') . '</th>';
+  $output .= '<th class="nodequeue-date">' . t('Date') . '</th>';
+  $output .= '<th class="nodequeue-operation">' . t('Operation') . '</th>';
   $output .= '</thead>';
   $output .= '<tbody>' . $body . '</tbody>';
   $output .= '</table>';
@@ -948,7 +948,7 @@ function theme_nodequeue_arrange_subqueue_form($form) {
   unset($form['add']['#title']);
   $rows = array(
     drupal_render($form['add']),
-    drupal_render($form['add_submit']),
+    array('data' => drupal_render($form['add_submit']), 'width' => '80%'),
   );
 
   $output = theme('table', $header, array($rows));
