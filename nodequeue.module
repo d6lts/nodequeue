@@ -890,6 +890,12 @@ function nodequeue_arrange_subqueue_form($queue, $sqid, $nids) {
     '#value' => t('Clear queue'),
   );
 
+  $form['reverse_click'] = array(
+    '#type' => 'submit',
+    '#attributes' => array('class' => 'nodequeue-reverse'),
+    '#value' => t('Reverse'),
+  );
+
   $form['shuffle'] = array(
     '#type' => 'submit',
     '#attributes' => array('class' => 'nodequeue-shuffle'),
@@ -922,8 +928,10 @@ function nodequeue_arrange_subqueue_form($queue, $sqid, $nids) {
       'add' => 'input.nodequeue-add',
       // The buttom to clear the queue
       'clear_list' => 'input.nodequeue-clear',
-      // Path for ajax on adding an item
+      // Path for js to shuffle the queue
       'shuffle' => 'input.nodequeue-shuffle',
+      // Path for js to reverse the queue
+      'reverse' => 'input.nodequeue-reverse',
       // Path for ajax on adding an item
       'path' => url('nodequeue/ajax/add', NULL, NULL, TRUE),
       // Which items to post when adding
@@ -1032,9 +1040,10 @@ function nodequeue_arrange_subqueue_form_submit($form_id, $form_values) {
     $nids = $form_values['nids'];
     $subqueue->count = 0;
     $order = explode(',', $form_values['order']);
-    if ($queue->reverse) {
+    if ($queue->reverse xor $form_values['op'] == t('Reverse')) {
       $order = array_reverse($order);
     }
+
     foreach ($order as $new_pos => $old_pos) {
       if ($sql) {
         $sql .= ', ';

@@ -186,6 +186,29 @@ Drupal.nodequeue = function(base, settings) {
         });
     }
 
+    if (settings.reverse) {
+      $(settings.reverse + ':not(.nodequeue-processed)')
+        .addClass('nodequeue-processed')
+        .click(function() { return false; })
+        .click(function(e) {
+          // reverse the order
+          var order = $(settings.order).val().split(',');
+          order.reverse();
+          saveOrder(order);
+
+          // Go through the new order and move each item to the bottom.
+          // Then everything will be where it was meant to be.
+          var last = $(settings.row_class + ':last');
+          for (var i in order) {
+            var item = $('#' + settings.tr + order[i]);
+            last.after(item);
+            changed($(item));
+            last = item;
+          }
+          restripeTable('#' + base);
+        });
+    }
+
     if (settings.up) {
       $(settings.up + ':not(.nodequeue-processed)')
         .addClass('nodequeue-processed')
