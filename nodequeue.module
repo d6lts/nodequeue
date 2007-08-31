@@ -810,7 +810,7 @@ function nodequeue_arrange_subqueue($queue, $subqueue) {
 
   $output = '<p>' . t('Max nodes in queue: @size', array('@size' => $queue->size ? $queue->size : t("Infinite"))) . '</p>';
 
-  $output .= '<p class="nodequeue-hide-if-not-js">';
+  $output .= '<p class="nodequeue-hide-if-not-js nodequeue-warning">';
   $output .= t('Changes made to the queue order and queue removals will not be active until you click Save, below. If you add more nodes than the queue can hold, they will be removed from the top when you save!  ');
   $output .= '</p>';
 
@@ -872,7 +872,7 @@ function nodequeue_arrange_subqueue_form($qid, $sqid, $nids) {
 
   $form['save'] = array(
     '#type' => 'submit',
-    '#attributes' => array('class' => 'nodequeue-js-hide nodequeue-save', 'style' => 'display: none'),
+    '#attributes' => array('class' => 'nodequeue-hide-if-not-js-hide nodequeue-save'),
     '#value' => t('Save'),
   );
 

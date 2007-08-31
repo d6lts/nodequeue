@@ -122,6 +122,14 @@ Drupal.nodequeue = function(base, settings) {
         .addClass('even');
   }
 
+  var changed = function(item) {
+    if (!item.is('.changed')) {
+      item.addClass('changed').css('color', 'red');
+      item.children('td:first').prepend(' <b>*</b> ');
+      $('p.nodequeue-warning').css('color', 'red');
+    }
+  }
+
   this.restripeTable = restripeTable;
 
   // Set as a function so we can be both a closure and called later
@@ -168,6 +176,7 @@ Drupal.nodequeue = function(base, settings) {
           for (var i in order) {
             var item = $('#' + settings.tr + order[i]);
             last.after(item);
+            changed($(item));
             last = item;
           }
           restripeTable('#' + base);
@@ -186,6 +195,7 @@ Drupal.nodequeue = function(base, settings) {
             // move item
             prev.before(item);
             restripeTable('#' + base);
+            changed(item);
             changeOrder(this, 'up');
           }
 
@@ -204,6 +214,7 @@ Drupal.nodequeue = function(base, settings) {
           first.before(item);
           restripeTable('#' + base);
           changeOrder(this, 'top');
+          changed(item);
 
           return false;
         });
@@ -222,6 +233,7 @@ Drupal.nodequeue = function(base, settings) {
             next.after(item);
             restripeTable('#' + base);
             changeOrder(this, 'down');
+            changed(item);
           }
 
           return false;
@@ -240,6 +252,7 @@ Drupal.nodequeue = function(base, settings) {
           last.after(item);
           restripeTable('#' + base);
           changeOrder(this, 'bottom');
+          changed(item);
 
           return false;
         });
@@ -277,6 +290,7 @@ Drupal.nodequeue = function(base, settings) {
 
                 // Add the form and re-attach behavior.
                 $('#' + base + ' tbody').append(new_content);
+                changed(new_content);
 
                 maxPosition++;
                 changeOrder(maxPosition, 'add');
