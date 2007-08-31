@@ -532,6 +532,13 @@ function nodequeue_edit_queue_form($queue) {
     '#description' => t('The maximum number of nodes will appear in the queue. Enter 0 for no limit'),
   );
 
+  $form['reverse'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Reverse in admin view'),
+    '#default_value' => $queue->reverse,
+    '#description' => t('Ordinarily queues are arranged with the front of the queue (where items will be removed) on top and the back (where items will be added) on the bottom. If checked, this will display the queue such that items will be added to the top and removed from the bottom.'),
+  );
+
   $form['link'] = array(
     '#type' => 'textfield',
     '#title' => t('Link "add to queue" text'),
@@ -575,7 +582,7 @@ function nodequeue_edit_queue_form($queue) {
     '#description' => t('Check each node type that can be added to this queue.'),
   );
 
-  $form[] = array(
+  $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Submit'),
   );
@@ -798,7 +805,8 @@ function nodequeue_arrange_subqueue($queue, $subqueue) {
   $sqid = $subqueue->sqid;
   $output = '';
 
-  $result = db_query("SELECT DISTINCT(n.nid), n.title, n.uid, u.name, n.created, nq.position FROM {node} n LEFT JOIN {users} u on n.uid = u.uid LEFT JOIN {nodequeue_nodes} nq ON nq.nid = n.nid WHERE nq.sqid = %d ORDER BY nq.position", $sqid);
+  $order = $queue->reverse ? 'DESC' : 'ASC';
+  $result = db_query("SELECT DISTINCT(n.nid), n.title, n.uid, u.name, n.created, nq.position FROM {node} n LEFT JOIN {users} u on n.uid = u.uid LEFT JOIN {nodequeue_nodes} nq ON nq.nid = n.nid WHERE nq.sqid = %d ORDER BY nq.position $order", $sqid);
 
   $body = '';
 
@@ -811,7 +819,7 @@ function nodequeue_arrange_subqueue($queue, $subqueue) {
   $output = '<p>' . t('Max nodes in queue: @size', array('@size' => $queue->size ? $queue->size : t("Infinite"))) . '</p>';
 
   $output .= '<p class="nodequeue-hide-if-not-js nodequeue-warning">';
-  $output .= t('Changes made to the queue order and queue removals will not be active until you click Save, below. If you add more nodes than the queue can hold, they will be removed from the top when you save!  ');
+  $output .= t('Changes made to the queue order and queue removals will not be active until you click Save, below. If you add more nodes than the queue can hold, they will be removed from the @end when you save!', array('@end' => $queue->reverse ? t('bottom') : t('top')));
   $output .= '</p>';
 
   $output .= '<table id="nodequeue-table">';
@@ -825,7 +833,7 @@ function nodequeue_arrange_subqueue($queue, $subqueue) {
   $output .= '<tbody>' . $body . '</tbody>';
   $output .= '</table>';
 
-  $output .= drupal_get_form('nodequeue_arrange_subqueue_form', $qid, $sqid, $nids);
+  $output .= drupal_get_form('nodequeue_arrange_subqueue_form', $queue, $sqid, $nids);
   drupal_add_js(drupal_get_path('module', 'nodequeue') .'/nodequeue.js');
 
   return $output;
@@ -834,10 +842,10 @@ function nodequeue_arrange_subqueue($queue, $subqueue) {
 /**
  * Form used for arranging a queue
  */
-function nodequeue_arrange_subqueue_form($qid, $sqid, $nids) {
+function nodequeue_arrange_subqueue_form($queue, $sqid, $nids) {
   $form['qid'] = array(
     '#type' => 'value',
-    '#value' => $qid,
+    '#value' => $queue->qid,
   );
 
   $form['sqid'] = array(
@@ -931,6 +939,8 @@ function nodequeue_arrange_subqueue_form($qid, $sqid, $nids) {
       'clear' => array('#edit-add'),
       // What hidden class to show as soon as anything has changed that needs saving.
       'hidden' => '.nodequeue-js-hide',
+      // Do we add to the top or the bottom?
+      'add_location' => $queue->reverse ? 'top' : 'bottom',
     ),
   );
   drupal_add_js(array('nodequeue' => $settings), 'setting');
@@ -1021,7 +1031,11 @@ function nodequeue_arrange_subqueue_form_submit($form_id, $form_values) {
     $args = array();
     $nids = $form_values['nids'];
     $subqueue->count = 0;
-    foreach (explode(',', $form_values['order']) as $new_pos => $old_pos) {
+    $order = explode(',', $form_values['order']);
+    if ($queue->reverse) {
+      $order = array_reverse($order);
+    }
+    foreach ($order as $new_pos => $old_pos) {
       if ($sql) {
         $sql .= ', ';
       }
@@ -1054,7 +1068,12 @@ function nodequeue_arrange_subqueue_form_submit($form_id, $form_values) {
  */
 function nodequeue_admin_up($queue, $subqueue, $pos) {
   // This function is safe if $pos is out of bounds.
-  nodequeue_queue_up($subqueue, $pos);
+  if (!$queue->reverse) {
+    nodequeue_queue_up($subqueue, $pos);
+  } else {
+    nodequeue_queue_down($subqueue, $pos);
+  }
+
   drupal_goto();
 }
 
@@ -1064,7 +1083,12 @@ function nodequeue_admin_up($queue, $subqueue, $pos) {
  */
 function nodequeue_admin_down($queue, $subqueue, $pos) {
   // This function is safe if $pos is out of bounds.
-  nodequeue_queue_down($subqueue, $pos);
+  if ($queue->reverse) {
+    nodequeue_queue_up($subqueue, $pos);
+  } else {
+    nodequeue_queue_down($subqueue, $pos);
+  }
+
   drupal_goto();
 }
 
@@ -1074,7 +1098,12 @@ function nodequeue_admin_down($queue, $subqueue, $pos) {
  */
 function nodequeue_admin_front($queue, $subqueue, $pos) {
   // This function is safe if $pos is out of bounds.
-  nodequeue_queue_front($subqueue, $pos);
+  if (!$queue->reverse) {
+    nodequeue_queue_front($subqueue, $pos);
+  } else {
+    nodequeue_queue_back($subqueue, $pos);
+  }
+
   drupal_goto();
 }
 
@@ -1084,7 +1113,12 @@ function nodequeue_admin_front($queue, $subqueue, $pos) {
  */
 function nodequeue_admin_back($queue, $subqueue, $pos) {
   // This function is safe if $pos is out of bounds.
-  nodequeue_queue_back($subqueue, $pos);
+  if ($queue->reverse) {
+    nodequeue_queue_front($subqueue, $pos);
+  } else {
+    nodequeue_queue_back($subqueue, $pos);
+  }
+
   drupal_goto();
 }
 
@@ -1619,13 +1653,13 @@ function nodequeue_load_subqueues_by_reference($references) {
 function nodequeue_save(&$queue) {
   if (!isset($queue->qid)) {
     $queue->qid = db_next_id("{nodequeue_queue}_qid");
-    db_query("INSERT INTO {nodequeue_queue} (qid, title, subqueue_title, size, link, link_remove, owner, show_in_links, show_in_tab, show_in_ui, reference) VALUES (%d, '%s', '%s', %d, '%s', '%s', '%s', %d, %d, %d, '%s')", $queue->qid, $queue->title, $queue->subqueue_title, $queue->size, $queue->link, $queue->link_remove, $queue->owner, $queue->show_in_links, $queue->show_in_tab, $queue->show_in_ui, $queue->reference);
+    db_query("INSERT INTO {nodequeue_queue} (qid, title, subqueue_title, size, link, link_remove, owner, show_in_links, show_in_tab, show_in_ui, reverse, reference) VALUES (%d, '%s', '%s', %d, '%s', '%s', '%s', %d, %d, %d, %d, '%s')", $queue->qid, $queue->title, $queue->subqueue_title, $queue->size, $queue->link, $queue->link_remove, $queue->owner, $queue->show_in_links, $queue->show_in_tab, $queue->show_in_ui, $queue->reverse, $queue->reference);
     if (function_exists('views_invalidate_cache')) {
       views_invalidate_cache();
     }
   }
   else {
-    db_query("UPDATE {nodequeue_queue} set size = %d, title = '%s', subqueue_title = '%s', link = '%s', link_remove = '%s', owner = '%s', show_in_links = %d, show_in_tab = %d, show_in_ui = %d, reference = '%s' WHERE qid = %d", $queue->size, $queue->title, $queue->subqueue_title, $queue->link, $queue->link_remove, $queue->owner, $queue->show_in_links, $queue->show_in_tab, $queue->show_in_ui, $queue->reference, $queue->qid);
+    db_query("UPDATE {nodequeue_queue} set size = %d, title = '%s', subqueue_title = '%s', link = '%s', link_remove = '%s', owner = '%s', show_in_links = %d, show_in_tab = %d, show_in_ui = %d, reverse = %d, reference = '%s' WHERE qid = %d", $queue->size, $queue->title, $queue->subqueue_title, $queue->link, $queue->link_remove, $queue->owner, $queue->show_in_links, $queue->show_in_tab, $queue->show_in_ui, $queue->reverse, $queue->reference, $queue->qid);
     db_query("DELETE FROM {nodequeue_roles} WHERE qid = %d", $queue->qid);
     db_query("DELETE FROM {nodequeue_types} WHERE qid = %d", $queue->qid);
     if ($nodes) {

@@ -66,7 +66,7 @@ Drupal.nodequeue = function(base, settings) {
   var changeOrder = function(item, how) {
     var order = $(settings.order).val().split(',');
 
-    if (how != 'add') {
+    if (how != 'add' && how != 'insert') {
       var tr = $(item).parents('tr').get(0);
       var id = $(tr).attr('id').replace(settings.tr, '');
       var index = -1;
@@ -82,6 +82,9 @@ Drupal.nodequeue = function(base, settings) {
     switch (how) {
       case 'add':
         order.push(item);
+        break;
+      case 'insert':
+        order.unshift(item);
         break;
       case 'delete':
         order.splice(index, 1);
@@ -288,12 +291,19 @@ Drupal.nodequeue = function(base, settings) {
                 Drupal.freezeHeight();
                 // Hide the new content before adding to page.
 
+                maxPosition++;
                 // Add the form and re-attach behavior.
-                $('#' + base + ' tbody').append(new_content);
+                if (settings.add_location != 'top') {
+                  $('#' + base + ' tbody').append(new_content);
+                  changeOrder(maxPosition, 'add');
+                }
+                else {
+                  $('#' + base + ' tbody').prepend(new_content);
+                  changeOrder(maxPosition, 'insert');
+                }
+
                 changed(new_content);
 
-                maxPosition++;
-                changeOrder(maxPosition, 'add');
                 bindButtons();
 
                 Drupal.unfreezeHeight();

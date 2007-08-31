@@ -179,6 +179,7 @@ function nodequeue_update_5201() {
           qid int(10) unsigned NOT NULL,
           reference varchar(255) default 0,
           title varchar(255) default '',
+          reverse int(1) default 0,
           KEY {nodequeue_subqueue}_qid_idx (qid),
           KEY {nodequeue_subqueue}_reference_idx (reference),
           KEY {nodequeue_subqueue}_title_idx (title)
@@ -220,5 +221,11 @@ function nodequeue_update_5201() {
 function nodequeue_update_5202() {
   $ret = array();
   db_add_column($ret, 'nodequeue_queue', 'subqueue_title', 'varchar(255)');
+  return $ret;
+}
+
+function nodequeue_update_5203() {
+  $ret = array();
+  db_add_column($ret, 'nodequeue_queue', 'reverse', 'int(1)');
   return $ret;
 }
