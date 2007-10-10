@@ -89,6 +89,7 @@ function nodequeue_views_tables() {
     if ($queue->subqueues > 1) {
       $tables['nodequeue_nodes']['filters']["qid_$queue->qid"] = array(
         'name' => t("NodeQueue: Subqueues for @queue", array('@queue' => $queue->title)),
+        'field' => 'qid',
         'value' => array(
           '#type' => 'select',
           '#options' => 'nodequeue_handler_queuelist',
