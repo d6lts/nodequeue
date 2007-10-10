@@ -56,6 +56,19 @@ function nodequeue_views_tables() {
         'option' => 'string',
         'help' => t('This filter allows nodes to be filtered by the time they were added to a given NodeQueue.') .' '. views_t_strings('filter date'),
       ),
+      "exclusion" => array(
+        'name' => t('NodeQueue: Not in a queue'),
+        'operator' => array('IS' => t('is')),
+        'value' => array(
+          '#type' => 'select',
+          '#options' => 'nodequeue_handler_queuelist',
+          '#all_ok' => TRUE,
+        ),
+        'field' => 'qid',
+        'handler' => 'nodequeue_handler_filter_exclusion',
+        'help' => t('This filter allows nodes to be filtered that do not belong to any node queue, or do not belong to a particular node queue.'),
+      ),
+
     ),
     "sorts" => array(
       "position" => array(
@@ -235,7 +248,7 @@ function nodequeue_views_default_views() {
  * Generate a list of queues for use in handlers.
  */
 function nodequeue_handler_queuelist($op, $argument) {
-  if (isset($argument['#all_ok'])) {
+  if (isset($argument['#all_ok']) || isset($argument['value']['#all_ok'])) {
     $options[0] = t('<All>');
   }
   $queues = nodequeue_load_queues(nodequeue_get_all_qids(NULL));
@@ -368,5 +381,32 @@ function nodequeue_handler_arg_reference($op, &$query, $argtype, $arg = '') {
     case 'title':
       $queue = db_fetch_object(db_query("SELECT title FROM {nodequeue_subqueue} WHERE reference = %d", $query));
       return check_plain($queue->title);
+  }
+}
+
+function nodequeue_handler_filter_exclusion($op, $filter, $filterinfo, &$query) {
+  $table = $filterinfo['table'];
+  $column = $filterinfo['field'];
+  $value = $filter['value'];
+  $joininfo = array(
+    'type' => 'LEFT',
+    'left' => array(
+      'table' => 'node',
+      'field' => 'nid',
+    ),
+    'right' => array(
+      'field' => 'nid',
+    ),
+  );
+  $num = $query->add_table($table, true, 1, $joininfo);
+  $tablename = $query->get_table_name($table, $num);
+  $field = "$tablename.$column";
+  if (empty($value)) {
+    // Not in any queues.
+    $query->add_where("$field IS NULL");
+  }
+  else {
+    // Not in a specific queue.
+    $query->add_where("$field IS NULL OR $field != %d", $value);
   }
 }
