@@ -226,20 +226,15 @@ function nodequeue_views_default_views() {
     $view->exposed_filter = array (
     );
     $view->requires = array('nodequeue_nodes', 'node');
-    if (count($queue->subqueue) > 1) {
-      // Add an argument to select a subqueue
-    }
-    else {
-      $view->filter = array (
-        array (
-          'tablename' => 'nodequeue_nodes',
-          'field' => 'sqid',
-          'operator' => 'OR',
-          'options' => '',
-          'value' => array($queue->current),
-        ),
-      );
-    }
+    $view->filter = array (
+      array (
+        'tablename' => 'nodequeue_nodes',
+        'field' => 'qid',
+        'operator' => 'OR',
+        'options' => '',
+        'value' => array($queue->qid),
+      ),
+    );
     $views[$view->name] = $view;
   }
   return $views;
