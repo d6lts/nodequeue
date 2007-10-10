@@ -17,7 +17,8 @@ function nodequeue_install() {
           show_in_ui int(1) default '1',
           show_in_tab int(1) default '1',
           show_in_links int(1) default '1',
-          reference varchar(255) default '0'
+          reference varchar(255) default '0',
+          reverse tinyint
         ) /*!40100 DEFAULT CHARACTER SET utf8 */");
 
         db_query("CREATE TABLE if not exists {nodequeue_roles} (
@@ -69,7 +70,8 @@ function nodequeue_install() {
           show_in_ui integer default '1',
           show_in_tab integer default '1',
           link varchar(255),
-          link_remove varchar(255)
+          link_remove varchar(255),
+          reverse smallint
         )");
 
         db_query("CREATE TABLE {nodequeue_roles} (
@@ -90,7 +92,7 @@ function nodequeue_install() {
           qid integer NOT NULL,
           nid integer,
           position integer,
-          timestamp integer NOT NULL default '0',
+          timestamp integer NOT NULL default '0'
         )");
         db_query("CREATE INDEX {nodequeue_nodes}_sqid_idx ON {nodequeue_nodes} (sqid, position)");
         db_query("CREATE INDEX {nodequeue_nodes}_nid_idx ON {nodequeue_nodes} (nid)");
@@ -179,7 +181,6 @@ function nodequeue_update_5201() {
           qid int(10) unsigned NOT NULL,
           reference varchar(255) default 0,
           title varchar(255) default '',
-          reverse int(1) default 0,
           KEY {nodequeue_subqueue}_qid_idx (qid),
           KEY {nodequeue_subqueue}_reference_idx (reference),
           KEY {nodequeue_subqueue}_title_idx (title)
@@ -226,6 +227,26 @@ function nodequeue_update_5202() {
 
 function nodequeue_update_5203() {
   $ret = array();
-  db_add_column($ret, 'nodequeue_queue', 'reverse', 'int(1)');
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      db_add_column($ret, 'nodequeue_queue', 'reverse', 'int(1)');
+      break;
+    // This update was broken on PgSQL, but is fixed in 5204 below.
+  }
+  return $ret;
+}
+
+function nodequeue_update_5204() {
+  $ret = array();
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      $ret[] = update_sql("ALTER TABLE {nodequeue_queue} MODIFY COLUMN reverse tinyint");
+      break;
+    case 'pgsql':
+      db_add_column($ret, 'nodequeue_queue', 'reverse', 'smallint');
+      break;
+  }
   return $ret;
 }
