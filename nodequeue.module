@@ -2110,6 +2110,22 @@ function nodequeue_fetch_random($sqid, $teaser = true, $links = true) {
   return nodequeue_nodes($sqid, false, $teaser, $links, rand(0, $count - 1), 1);
 }
 
+/**
+* Get the position of a node in a subqueue, or FALSE if not found.
+*/
+function nodequeue_subqueue_position($sqid, $nid) {
+  return db_result(db_query("SELECT position FROM {nodequeue_nodes} WHERE sqid = %d AND nid = %d", $sqid, $nid));
+}
+
+/**
+ * Get the position of a node in a queue; this queue MUST have only one
+ * subqueue or the results of this function will be unpredictable.
+ */
+function nodequeue_queue_position($qid, $nid) {
+  $sqid = db_result(db_query("SELECT sqid FROM {nodequeue_subqueue} WHERE qid = %d LIMIT 1", $qid));
+  return nodequeue_subqueue_position($sqid, $nid);
+}
+
 // --------------------------------------------------------------------------
 // API for modules implementing subqueues.
 
