@@ -251,6 +251,13 @@ function nodequeue_link($type, $node = NULL, $teaser = FALSE) {
     // resort the subqueues to retain consistent ordering:
 
     ksort($subqueues);
+    // Due to caching, we can accidentally get positions leftover
+    // from previous iterations on teaser list pages, so we must
+    // remove any existing positions here.
+    foreach ($subqueues as $id => $subqueue) {
+      unset($subqueues[$id]->position);
+    }
+
     nodequeue_set_subqueue_positions($subqueues, $node->nid);
 
     foreach ($subqueues as $subqueue) {
@@ -1846,7 +1853,7 @@ function nodequeue_check_subqueue_size($queue, &$subqueue, $size = NULL) {
     $size = $queue->size;
   }
 
-  if ($size && $subqueue->count > $size) {
+  if ($queue->size && $subqueue->count > $size) {
     nodequeue_subqueue_remove($subqueue->sqid, 1, $subqueue->count - $size);
     $subqueue->count = $size;
   }
