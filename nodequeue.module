@@ -302,7 +302,7 @@ function nodequeue_js_output($label, $href, $count = NULL, $sqid = NULL) {
   }
 
   // let the world know this isn't normal output.
-  drupal_set_header('text/javascript');
+  drupal_set_header('Content-type: text/javascript');
   print drupal_to_js($return);
   exit;
 }
@@ -1181,7 +1181,7 @@ function nodequeue_autocomplete($sqid = NULL, $string = NULL) {
   $output = _nodequeue_autocomplete($sqid, $string);
 
   // let the world know this isn't normal output.
-  drupal_set_header('text/javascript');
+  drupal_set_header('Content-type: text/javascript');
   print drupal_to_js(drupal_map_assoc($output));
   exit;
 }
@@ -1216,7 +1216,7 @@ function nodequeue_ajax_add() {
   $string = $_POST['add'];
   $output = _nodequeue_ajax_add($sqid, $position, $string);
   // let the world know this isn't normal output.
-  drupal_set_header('text/javascript');
+  drupal_set_header('Content-type: text/javascript');
   print drupal_to_js($output);
   exit;
 }
