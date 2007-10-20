@@ -19,7 +19,7 @@
 Drupal.nodequeue = function(base, settings) {
   // Set the properties for this object.
   if (settings.container == null) {
-    settings.container = 'tr';
+    settings.container = settings.row_class;
   }
 
   var max = function(array) {
