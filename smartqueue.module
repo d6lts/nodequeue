@@ -65,9 +65,21 @@ function smartqueue_taxonomy_nodequeue_subqueues(&$queue, $node) {
     $vids[$vid] = array();
   }
 
-  foreach ($node->taxonomy as $tid => $term) {
-    if (isset($vids[$term->vid])) {
-      $vids[$term->vid][] = $tid;
+  foreach ($node->taxonomy as $key => $value) {
+    // This unfortunate scar is needed because $node->taxonomy looks different when saving a node versus loading.
+    if (!is_object($value)) {
+      // $node comes from a node form submission
+      foreach ((array)$value as $tid) {
+        if (isset($vids[$key])) {
+          $vids[$key][] = $tid;
+        }
+      }
+    }
+    else {
+      // $node comes from node_load()
+      if (isset($vids[$value->vid])) {
+        $vids[$value->vid][] = $value->tid;
+      }
     }
   }
 

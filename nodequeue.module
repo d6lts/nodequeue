@@ -1324,7 +1324,7 @@ function nodequeue_queue_access($queue, $account = NULL) {
  * Fetch a list of available queues for a given location. These queues
  * will be fully loaded and ready to go.
  */
-function nodequeue_load_queues_by_type($type, $location = NULL) {
+function nodequeue_load_queues_by_type($type, $location = NULL, $account = NULL) {
   $qids = nodequeue_get_qids($type, $account);
   if ($location) {
     nodequeue_filter_qids($qids, $location);
@@ -1396,7 +1396,7 @@ function nodequeue_get_qids($type, $account = NULL) {
     $roles = array();
 
     // superuser always has access.
-    if (!user_access('manipulate all queues')) {
+    if (!user_access('manipulate all queues', $account)) {
       $roles_join = "INNER JOIN {nodequeue_roles} nr ON nr.qid = nq.qid ";
       $roles = array_keys((array) $account->roles) + array(DRUPAL_AUTHENTICATED_RID);
       $role_args = array_fill(0, count($roles), '%d');
