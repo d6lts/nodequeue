@@ -244,6 +244,7 @@ function nodequeue_views_default_views() {
  * Generate a list of queues for use in handlers.
  */
 function nodequeue_handler_queuelist($op, $argument) {
+  $options = array();
   if (isset($argument['#all_ok']) || isset($argument['value']['#all_ok'])) {
     $options[0] = t('<All>');
   }
