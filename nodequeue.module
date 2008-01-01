@@ -1759,13 +1759,14 @@ function nodequeue_add_subqueue(&$queue, $title, $reference = NULL) {
  * reflect updates in taxonomy term names, for example.
  */
 function nodequeue_subqueue_update_title($sqid, $title) {
-  db_query("UPDATE {nodequeue_subqueue} SET title = '%s' WHERE $sqid = %d", $title, $sqid);
+  db_query("UPDATE {nodequeue_subqueue} SET title = '%s' WHERE sqid = %d", $title, $sqid);
 }
 
 /**
- * Remove an a subqueue.
+ * Remove a subqueue.
  */
 function nodequeue_remove_subqueue($sqid) {
+  nodequeue_queue_clear($sqid);
   db_query("DELETE FROM {nodequeue_subqueue} WHERE sqid = %d", $sqid);
 }
 
