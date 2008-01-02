@@ -338,6 +338,10 @@ function nodequeue_handler_arg_qtitle($op, &$query, $argtype, $arg = '') {
       $query->add_field('title', 'nodequeue_subqueue');
       $query->add_field('sqid', 'nodequeue_subqueue');
       $query->add_where('nodequeue_subqueue.sqid IS NOT NULL');
+      if (!empty($arg)) {
+        // User wanted to restrict to a specific queue, too.
+        $query->add_where("nodequeue_subqueue.qid = %d", $arg);
+      }
       $fieldinfo['field'] = "nodequeue_subqueue.title";
       return $fieldinfo;
       break;
@@ -348,6 +352,10 @@ function nodequeue_handler_arg_qtitle($op, &$query, $argtype, $arg = '') {
       $qtitle = $arg;
       $query->ensure_table('nodequeue_subqueue', true);
       $query->add_where("nodequeue_subqueue.title = '%s'", $qtitle);
+      if (!empty($argtype['options'])) {
+        // User wanted to restrict to a specific queue, too.
+        $query->add_where("nodequeue_subqueue.qid = %d", $argtype['options']);
+      }
       break;
     case 'link':
       return l($query->title, "$arg/" . $query->title);
