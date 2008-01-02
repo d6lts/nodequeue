@@ -191,6 +191,7 @@ function nodequeue_views_arguments() {
       'option' => array(
         '#type' => 'select',
         '#options' => 'nodequeue_handler_queuelist',
+        '#any_ok' => TRUE,
       ),
       'help' => t('Filter the view to a specific Sub Queue. The subqueue reference is the ID that the subqueue is attached to; tax id for taxonomy or user id for user queues, etc.'),
     ),
@@ -277,6 +278,11 @@ function nodequeue_handler_queuelist($op, $argument) {
   if (isset($argument['#all_ok']) || isset($argument['value']['#all_ok'])) {
     $options[0] = t('<All>');
   }
+  
+  if (isset($argument['#any_ok']) || isset($argument['value']['#any_ok'])) {
+    $options[-1] = t('<Any>');
+  }
+  
   $queues = nodequeue_load_queues(nodequeue_get_all_qids(NULL));
   foreach ($queues as $queue) {
     // no check plain necessary as this goes into a fieldset which takes
@@ -389,7 +395,9 @@ function nodequeue_handler_arg_reference($op, &$query, $argtype, $arg = '') {
       $query->add_field('title', 'nodequeue_subqueue');
       $query->add_field('reference', 'nodequeue_subqueue');
       $query->add_where('nodequeue_subqueue.reference IS NOT NULL');
-      $query->add_where('nodequeue_subqueue.qid = %d', $arg);
+      if ($argtype['options'] != -1) {
+        $query->add_where('nodequeue_subqueue.qid = %d', $arg);
+      }
       $fieldinfo['field'] = "nodequeue_subqueue.title";
       return $fieldinfo;
       break;
@@ -400,7 +408,9 @@ function nodequeue_handler_arg_reference($op, &$query, $argtype, $arg = '') {
       // $argtype['options'] == $option
       $query->ensure_table('nodequeue_subqueue', true);
       $query->add_where("nodequeue_subqueue.reference = %d", $arg);
-      $query->add_where('nodequeue_subqueue.qid = %d', $argtype['options']);
+      if ($argtype['options'] != -1) {
+       $query->add_where('nodequeue_subqueue.qid = %d', $argtype['options']); 
+      };
       break;
     case 'link':
       return l($query->title, "$arg/" . intval($query->reference));
