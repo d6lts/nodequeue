@@ -99,6 +99,30 @@ function nodequeue_views_tables() {
         'help' => t('Filter the view to a specific Node Queue.'),
       );
     }
+    else {
+      $tables['nodequeue_nodes_'. $queue->qid] = array(
+        "name" => "nodequeue_nodes",
+        "join" => array(
+          "left" => array(
+            "table" => "node",
+            "field" => "nid"
+          ),
+          "right" => array(
+            "field" => "nid"
+          ),
+          'extra' => array(
+            'qid' => $queue->qid,
+          ),
+        ),
+        "sorts" => array(
+          "position" => array(
+            'name' => t("NodeQueue: Queue Position in @queue", array('@queue' => $queue->title)),
+            'field' => 'position',
+            'help' => t('Sort by the position of the node in a given queue. Use this only if, for some reason, you are filtering in such a way that you are including nodes from multiple queues; otherwise use the simpler "NodeQueue: Queue Position" filter.'),
+          ),
+        ),
+      );
+    }
   }
   $tables['nodequeue_subqueue'] = array(
     "name" => "nodequeue_subqueue",
