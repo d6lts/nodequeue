@@ -1982,20 +1982,32 @@ function nodequeue_get_subqueues_by_node($queues, $node) {
  */
 function nodequeue_subqueue_size_text($max, $count, $long = TRUE) {
   if (empty($count)) {
-    $message = t('Queue empty');
+    $message = theme('nodequeue_subqueue_empty_text');
   }
   else if ($count == $max) {
-    $message = t('Queue full');
+    $message = theme('nodequeue_subqueue_full_text');
   }
   else {
     if ($long) {
-      $message = t('@count in queue', array('@count' => $count));
+      $message = theme('nodequeue_subqueue_count_text', $count);
     }
     else {
       $message = $count;
     }
   }
   return $message;
+}
+
+function theme_nodequeue_subqueue_empty_text() {
+  return t('Queue empty');
+}
+
+function theme_nodequeue_subqueue_full_text() {
+  return t('Queue full');
+}
+
+function theme_nodequeue_subqueue_count_text($count) {
+  return t('@count in queue', array('@count' => $count));
 }
 
 /**
