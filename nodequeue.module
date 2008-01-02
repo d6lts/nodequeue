@@ -56,6 +56,14 @@ function nodequeue_menu($may_cache) {
       'type' => MENU_DEFAULT_LOCAL_TASK
     );
     $items[] = array(
+      'path' => 'admin/content/nodequeue/settings',
+      'title' => t('Settings'),
+      'access' => $admin_access,
+      'callback' => 'drupal_get_form',
+      'callback arguments' => array('nodequeue_admin_settings'),
+      'type' => MENU_LOCAL_TASK
+    );
+    $items[] = array(
       'path' => 'nodequeue/autocomplete',
       'title' => t('Autocomplete'),
       'access' => $access,
@@ -82,7 +90,7 @@ function nodequeue_menu($may_cache) {
     }
   }
   else {
-    if ($user && arg(0) == 'node' && is_numeric(arg(1)) && arg(1) > 0 && $access) {
+    if ($user && arg(0) == 'node' && is_numeric(arg(1)) && arg(1) > 0 && $access && variable_get('nodequeue_use_tab', 1)) {
       $node = node_load(arg(1));
       // nodequeue tab for a node.
       if ($node && $queues = nodequeue_load_queues_by_type($node->type, 'tab')) {
@@ -362,12 +370,13 @@ function nodequeue_admin_remove_node($queue, $subqueue, $node) {
  *   The list of queues. Loaded by the menu in order to test access control.
  */
 function nodequeue_node_tab($node, $queues) {
-  $header = array(
-    array('data' => t('Title'), 'class' => 'nodequeue-title'),
-    array('data' => t('Max nodes'), 'class' => 'nodequeue-max-nodes'),
-    array('data' => t('In queue'), 'class' => 'nodequeue-in-queue'),
-    array('data' => t('Operation'), 'class' => 'nodequeue-operation'),
-  );
+  $header = array();
+  $header[] = array('data' => t('Title'), 'class' => 'nodequeue-title');
+  if (variable_get('nodequeue_tab_display_max', 1)) {
+    $header[] = array('data' => t('Max nodes'), 'class' => 'nodequeue-max-nodes');
+  }
+  $header[] = array('data' => t('In queue'), 'class' => 'nodequeue-in-queue');
+  $header[] = array('data' => t('Operation'), 'class' => 'nodequeue-operation');
   $subqueues = nodequeue_get_subqueues_by_node($queues, $node);
 
   nodequeue_set_subqueue_positions($subqueues, $node->nid);
@@ -391,19 +400,21 @@ function nodequeue_node_tab($node, $queues) {
         drupal_get_destination() . '&tab'
       );
     }
-    $rows[] = array(
-      array(
-        'class' => 'nodequeue-title',
-        'data' => l(nodequeue_title_substitute($queue->subqueue_title, $queue, $subqueue), "admin/content/nodequeue/$queue->qid/view/$subqueue->sqid"),
-      ),
-      array('class' => 'nodequeue-max-nodes', 'data' => $queue->size ? $queue->size : t('Infinite')),
-      array(
-        'id' => 'nodequeue-count-' . $subqueue->sqid,
-        'class' => 'nodequeue-in-queue',
-        'data' => nodequeue_subqueue_size_text($queue->size, $subqueue->count, FALSE)
-      ),
-      array('class' => 'nodequeue-operation', 'data' => $op),
+    $row = array();
+    $row[] = array(
+      'class' => 'nodequeue-title',
+      'data' => l(nodequeue_title_substitute($queue->subqueue_title, $queue, $subqueue), "admin/content/nodequeue/$queue->qid/view/$subqueue->sqid"),
     );
+    if (variable_get('nodequeue_tab_display_max', 1)) {
+      $row[] = array('class' => 'nodequeue-max-nodes', 'data' => $queue->size ? $queue->size : t('Infinite'));
+    }
+    $row[] = array(
+      'id' => 'nodequeue-count-' . $subqueue->sqid,
+      'class' => 'nodequeue-in-queue',
+      'data' => nodequeue_subqueue_size_text($queue->size, $subqueue->count, FALSE)
+    );
+    $row[] = array('class' => 'nodequeue-operation', 'data' => $op);
+    $rows[] = $row;
   }
 
   $output .= theme('table', $header, $rows, array('class' => 'nodequeue-table'));
@@ -2293,4 +2304,28 @@ function nodequeue_api_autocomplete($queue, $subqueue, $string) {
  */
 function nodequeue_api_info() {
   return module_invoke_all('nodequeue_info');
+}
+
+/**
+ * Form builder for the nodequeue settings tab.
+ */
+function nodequeue_admin_settings() {
+  $form = array();
+  $form['nodequeue_use_tab'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Create a menu tab for each node that could belong to any queues'),
+    '#default_value' => variable_get('nodequeue_use_tab', 1),
+  );
+  $form['nodequeue_tab_display_max'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Include a column on the nodequeue tab for the maximum number of nodes in each queue'),
+    '#default_value' => variable_get('nodequeue_tab_display_max', 1),
+  );
+  $form['nodequeue_tab_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Node queue tab label'),
+    '#default_value' => variable_get('nodequeue_tab_name', t('Node queue')),
+    '#description' => t('If nodes will have a menu tab for manipulating related node queues, what should that tab be called?'),
+  );
+  return system_settings_form($form);
 }
