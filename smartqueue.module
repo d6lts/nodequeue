@@ -33,7 +33,7 @@ function smartqueue_taxonomy_nodequeue_form($queue, &$form) {
     '#maxlength' => 64,
     '#description' => t('What to display for the subqueue title; use %subqueue to embed the actual subqueue title. This is used to distinguish multiple nodequeues with subqueues from each other, as internal subqueue title is filled automatically.'),
   );
-  
+
 
   if ($queue->qid) {
     $form['placeholder']['vocabularies']['#disabled'] = TRUE;
@@ -150,7 +150,7 @@ function smartqueue_taxonomy_nodequeue_subqueue_title($queue, $reference) {
     // $tid can be 0, specifically meaning this term is unset.
     if ($tid) {
       $terms = smartqueue_taxonomy_get_terms($vid);
-      $titles[$tid] = check_plain($terms[$tid]);
+      $titles[$tid] = $terms[$tid];
     }
   }
   return implode('-', $titles);
