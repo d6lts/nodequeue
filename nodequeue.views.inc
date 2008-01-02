@@ -30,6 +30,11 @@ function nodequeue_views_tables() {
         'help' => t('Display the time the node was added to a given node queue.').' '.
                   t('The option field may be used to specify the custom date format as it\'s required by the date() function or if "as time ago" has been chosen to customize the granularity of the time interval.'),
       ),
+      'ajaxtoggle' => array(
+        'name' => t('NodeQueue: AJAX Add/Remove Link'),
+        'handler' => 'nodequeue_views_ajax_link',
+        'notafield' => true,
+      ),
     ),
     "filters" => array(
       "qid" => array(
@@ -430,4 +435,11 @@ function nodequeue_handler_filter_exclusion($op, $filter, $filterinfo, &$query) 
     // Not in a specific queue.
     $query->add_where("$field IS NULL OR $field != %d", $value);
   }
+}
+
+/**
+ * Views field handler for "NodeQueue: AJAX Add/Remove Link"
+ */
+function nodequeue_views_ajax_link($fieldinfo, $fielddata, $value, $data) {
+  return theme('links', nodequeue_link('node', node_load($data->nid)));
 }
