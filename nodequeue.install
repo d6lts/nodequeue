@@ -47,7 +47,7 @@ function nodequeue_install() {
           KEY {nodequeue_subqueue}_qid_idx (qid),
           KEY {nodequeue_subqueue}_reference_idx (reference),
           KEY {nodequeue_subqueue}_title_idx (title)
-        )/*!40100 DEFAULT CHARACTER SET utf8 */"); 
+        )/*!40100 DEFAULT CHARACTER SET utf8 */");
 
         db_query("CREATE TABLE if not exists {nodequeue_nodes} (
           qid int(10) unsigned NOT NULL,
@@ -105,7 +105,7 @@ function nodequeue_install() {
     drupal_set_message(t('Nodequeue module installed tables successfully.'));
   }
   else {
-    drupal_set_message(t('The installation of nodequeue module was unsuccessful.'), 
+    drupal_set_message(t('The installation of nodequeue module was unsuccessful.'),
 'error');
   }
 }
@@ -123,6 +123,10 @@ function nodequeue_uninstall() {
       db_query("DROP TABLE {$table}");
     }
   }
+
+  if ($GLOBALS['db_type'] == 'pgsql') {
+    db_query("DROP SEQUENCE nodequeue_queue_qid_seq;");
+  }
 }
 
 function nodequeue_update_1() {
@@ -137,13 +141,13 @@ function nodequeue_update_5000() {
 
   $ret[] = update_sql("ALTER TABLE {nodequeue_queue} ADD COLUMN link VARCHAR(40) DEFAULT '' NOT NULL");
   $ret[] = update_sql("ALTER TABLE {nodequeue_queue} ADD COLUMN link_remove VARCHAR(40) DEFAULT '' NOT NULL");
-  
+
   $ret[] = update_sql("CREATE INDEX {nodequeue_roles}_qid_idx ON {nodequeue_roles} (qid)");
   $ret[] = update_sql("CREATE INDEX {nodequeue_roles}_rid_idx ON {nodequeue_roles} (rid)");
   $ret[] = update_sql("CREATE INDEX {nodequeue_types}_qid_idx ON {nodequeue_types} (qid)");
   $ret[] = update_sql("CREATE INDEX {nodequeue_nodes}_qid_idx ON {nodequeue_nodes} (qid, position)");
   $ret[] = update_sql("CREATE INDEX {nodequeue_nodes}_nid_idx ON {nodequeue_nodes} (nid)");
-  
+
   $ret[] = _system_update_utf8(array('nodequeue_queue', 'nodequeue_roles', 'nodequeue_types', 'nodequeue_nodes'));
   return $ret;
 }
