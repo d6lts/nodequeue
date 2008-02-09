@@ -757,7 +757,7 @@ function nodequeue_admin_view($queue, $sqid = NULL) {
     // Adjust properties of the page so our subqueue is in the right
     // visual place.
     $subqueue = nodequeue_load_subqueue($sqid);
-    drupal_set_title(t("Subqueue '@title'", 
+    drupal_set_title(t("Subqueue '@title'",
       array('@title' => nodequeue_title_substitute($queue->subqueue_title, $queue, $subqueue))));
     $breadcrumb = drupal_get_breadcrumb();
     $breadcrumb[] = l($queue->title, "admin/content/nodequeue/$queue->qid");
@@ -941,7 +941,7 @@ function nodequeue_arrange_subqueue_form($queue, $sqid, $nids) {
       'top' => 'a.nodequeue-move-front',
       'bottom' => 'a.nodequeue-move-back',
       'remove' => 'a.nodequeue-remove',
-      
+
       // The button that adds an item
       'add' => 'input.nodequeue-add',
       // The buttom to clear the queue
@@ -1044,7 +1044,7 @@ function nodequeue_arrange_subqueue_form_submit($form_id, $form_values) {
 
   $queue = nodequeue_load($form_values['qid']);
   $subqueue = nodequeue_load_subqueue($form_values['sqid']);
-  
+
   if ($form_values['op'] == t('Add')) {
     nodequeue_subqueue_add($queue, $subqueue, $form_values['nid']);
     return;
@@ -1079,7 +1079,7 @@ function nodequeue_arrange_subqueue_form_submit($form_id, $form_values) {
     $sql = "INSERT INTO {nodequeue_nodes} (sqid, qid, nid, position, timestamp) VALUES $sql";
     db_query($sql, $args);
     if ($queue->size) {
-        // 0 means infinity so never do this if false 
+        // 0 means infinity so never do this if false
         nodequeue_check_subqueue_size($queue, $subqueue);
     }
     if ($form_values['op'] == t('Shuffle')) {
@@ -1199,7 +1199,7 @@ function nodequeue_autocomplete($sqid = NULL, $string = NULL) {
 
 function _nodequeue_autocomplete($sqid, $string) {
   $output = array();
-  
+
   if (!$sqid || !is_numeric($sqid) || !$string) {
     return $output;
   }
@@ -1208,7 +1208,7 @@ function _nodequeue_autocomplete($sqid, $string) {
   if (!$subqueue) {
     return $output;
   }
-    
+
   $queue = nodequeue_load($subqueue->qid);
   if (!$queue) {
     return $output;
@@ -1245,7 +1245,7 @@ function _nodequeue_ajax_add($sqid, $position, $string) {
   if (!$subqueue) {
     return array('error' => t('Invalid sqid'));
   }
-    
+
   $queue = nodequeue_load($subqueue->qid);
   if (!$queue) {
     return array('error' => t('Invalid sqid'));
@@ -1446,7 +1446,7 @@ function nodequeue_get_qids($type, $account = NULL) {
  */
 function nodequeue_get_all_qids($page_size = 25, $pager_element = 0) {
   static $cache = NULL;
-  if (!isset($cache)) { 
+  if (!isset($cache)) {
     $sql = 'SELECT nq.qid ' .
            'FROM {nodequeue_queue} nq ' .
            'WHERE nq.show_in_ui = 1 ';
@@ -1671,7 +1671,7 @@ function nodequeue_load_subqueues_by_reference($references) {
     }
   }
 
-  return $subqueues;  
+  return $subqueues;
 }
 
 /**
@@ -1812,12 +1812,10 @@ function nodequeue_subqueue_add($queue, $subqueue, $nid) {
  * only the first (closest to 0 position, or the front of the queue) will
  * be removed.
  *
- * @param $qid
- *   Either the QID of a queue, or an already loaded queue object.
- * @param $nid
- *   The node to remove.
  * @param $sqid
  *   The subqueue to remove nodes from.
+ * @param $nid
+ *   The node to remove.
  */
 function nodequeue_subqueue_remove_node($sqid, $nid) {
   if ($pos = nodequeue_get_subqueue_position($sqid, $nid)) {
@@ -1827,6 +1825,19 @@ function nodequeue_subqueue_remove_node($sqid, $nid) {
 
 /**
  * Remove a node or node(s) from a nodequeue by position.
+ *
+ * If you know the nid but but not the position, use
+ * @see nodequeue_subqueue_remove_node() instead.
+ *
+ * @param $sqid
+ *   The subqueue to remove nodes from.
+ * @param $start
+ *   The first position (starting from 1) to remove.
+ * @param $end
+ *   The last position to remove. If NULL or equal to $start,
+ *   only one node will be removed. Thus if $start is 1 and $end is 2,
+ *   the first and second items will be removed from the queue.
+ *
  */
 function nodequeue_subqueue_remove($sqid, $start, $end = NULL) {
   if (!isset($end)) {
@@ -2264,7 +2275,7 @@ function nodequeue_api_autocomplete($queue, $subqueue, $string) {
 
   $where = "n.type IN (" . implode(', ', array_fill(0, count($queue->types), "'%s'")) . ')';
   $where_args = $queue->types;
-  
+
   // Run a match to see if they're specifying by nid.
   $preg_matches = array();
   $match = preg_match('/\[nid: (\d+)\]/', $string, $preg_matches);
@@ -2294,7 +2305,7 @@ function nodequeue_api_autocomplete($queue, $subqueue, $string) {
       $matches[$node->nid] = check_plain($node->title) . " [nid: $node->nid]";
     }
   }
-  
+
   return $matches;
 }
 
