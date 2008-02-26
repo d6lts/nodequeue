@@ -453,7 +453,7 @@ function nodequeue_handler_filter_exclusion($op, $filter, $filterinfo, &$query) 
 
   // If we're just checking for one queue, add the qid to our join info.
   if (!empty($value)) {
-    $joininfo['extra']['qid'] = $empty;
+    $joininfo['extra']['qid'] = $value;
   }
 
   $num = $query->add_table($table, true, 1, $joininfo);
