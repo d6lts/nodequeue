@@ -588,7 +588,7 @@ function nodequeue_edit_queue_form($queue) {
     '#description' => t('Enter the text for the corresponding link to remove a node from a queue. This may be blank (in which case no link will appear) but a remove link will only appear if link, above, is set.'),
   );
 
-  $result = db_query("SELECT * FROM {role} ORDER BY name");
+  $result = db_query("SELECT r.* FROM {role} r LEFT JOIN {permission} p ON p.rid = r.rid WHERE p.perm LIKE '%manipulate queues%' ORDER BY r.name");
   while ($role = db_fetch_object($result)) {
     $roles[$role->rid] = $role->name;
   }
@@ -598,7 +598,7 @@ function nodequeue_edit_queue_form($queue) {
     '#title' => t('Roles'),
     '#default_value' => $queue->roles,
     '#options' => $roles,
-    '#description' => t('Check each role that can add nodes to the queue.'),
+    '#description' => t('Check each role that can add nodes to the queue. Be sure that roles you want to appear here have "manipulate queues" access in the main access control panel.'),
   );
 
   foreach (node_get_types() as $type => $info) {

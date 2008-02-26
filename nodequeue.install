@@ -135,6 +135,7 @@ function nodequeue_uninstall() {
     foreach ($names as $name) {
       db_query("DELETE FROM {sequences} WHERE name = '%s'", $name);
     }
+  }
 }
 
 function nodequeue_update_1() {
