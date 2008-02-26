@@ -1,0 +1,348 @@
+<?php
+/**
+ *  This class is used to test the randomchoice module with simpletest.
+ */
+class NodeQueueTest extends DrupalTestCase {
+  function get_info() {
+    return array('name' => 'NodeQueue Test',
+                 'desc' => t('Assure that NodeQueue works.'),
+                 'group' => 'NodeQueue');
+  }
+  
+  /**
+   * Assumption is that you have a nodequeue with qid of 1.  Additionally, there should be at least three nodes already added
+   *  to the nodequeue, and there should be at least one existing node that is not part of the nodequeue.  Don't worry, all 
+   *  operations, if successful, will return the nodequeue to it's original status and order.  
+   * 
+   * Honestly, if you don't have that none of these tests will work.
+   */
+  
+  /**
+   * This test verifies that we can go to the node/nid/nodequeue page of a node, and add that node to the nodequeue 1.
+   * 
+   * After the node is added to the queue, we go to the same page and remove it.
+   *
+   */
+  function test_add_node_to_queue() {
+    $nid_array = $this->nodequeue_get_nids(1);
+    
+    $new_nid = 7;
+    while (FALSE !== array_search($new_nid, $nid_array)) {
+      $new_nid++;
+    }
+    
+    $this->login_nodequeue_user();
+
+    $html = $this->drupalGet('http://localhost'. url('node/'. $new_nid .'/nodequeue'));
+    
+    $return = $this->clickLink('Add to queue');
+    
+    $new_nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->assertEqual(count($nid_array) + 1, count($new_nid_array), '[nodequeue] Adding a new node to the queue increases the count: %s');
+    
+    $html = $this->drupalGet('http://localhost'. url('node/'. $new_nid .'/nodequeue', 'destination=node/7/nodequeue')); // refresh!
+    $return = $this->clickLink('Remove from queue');
+    
+    $new_nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->assertEqual(count($nid_array), count($new_nid_array), '[nodequeue] Removing the new node from the queue returns the count to the original: %s');
+  }
+  
+  function test_add_node_to_queue_fails_lack_of_token() {
+    $nid_array = $this->nodequeue_get_nids(1);
+    
+    $new_nid = 7;
+    while (FALSE !== array_search($new_nid, $nid_array)) {
+      $new_nid++;
+    }
+    
+    $this->login_nodequeue_user();
+    
+    $html = $this->drupalGet('http://localhost'. url('admin/content/nodequeue/1/add/1/'. $new_nid));
+    
+    $new_nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->assertEqual(count($nid_array), count($new_nid_array), '[nodequeue] Trying to add a new node without a token should fail: %s');
+  }
+  
+  function test_add_node_to_queue_fails_bad_token() {
+    $nid_array = $this->nodequeue_get_nids(1);
+    
+    $new_nid = 7;
+    while (FALSE !== array_search($new_nid, $nid_array)) {
+      $new_nid++;
+    }
+    
+    $this->login_nodequeue_user();
+    
+    $html = $this->drupalGet('http://localhost'. url('admin/content/nodequeue/1/add/1/'. $new_nid, 'token=e0daddc84e8b94e57b805bbc23cb7dcf'));
+    
+    $new_nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->assertEqual(count($nid_array), count($new_nid_array), '[nodequeue] Trying to add a new node with the wrong token should fail: %s');
+  }
+  
+  function test_remove_node_from_queue_fails_lack_of_token() {
+    $nid_array = $this->nodequeue_get_nids(1);
+    
+    $new_nid = $nid_array[0];
+    
+    $this->login_nodequeue_user();
+
+    $html = $this->drupalGet('http://localhost'. url('admin/content/nodequeue/1/remove/1/'. $new_nid));
+    
+    $new_nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->assertEqual(count($nid_array), count($new_nid_array), '[nodequeue] Trying to remove a node with the wrong token should fail: %s');
+    
+  }
+  
+  function test_remove_node_from_queue_fails_bad_token() {
+    $nid_array = $this->nodequeue_get_nids(1);
+    
+    $new_nid = 7;
+    while (FALSE !== array_search($new_nid, $nid_array)) {
+      $new_nid++;
+    }
+    
+    $this->login_nodequeue_user();
+    
+    $html = $this->drupalGet('http://localhost'. url('admin/content/nodequeue/1/remove/1/'. $new_nid, 'token=e0daddc84e8b94e57b805bbc23cb7dcf'));
+    
+    $new_nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->assertEqual(count($nid_array), count($new_nid_array), '[nodequeue] Trying to remove a node with the wrong token should fail: %s');
+  }
+  
+  function test_add_node_from_node_view() {
+    $nid_array = $this->nodequeue_get_nids(1);
+    
+    $new_nid = 7;
+    while (FALSE !== array_search($new_nid, $nid_array)) {
+      $new_nid++;
+    }
+    
+    $this->login_nodequeue_user();
+    
+    $queue = $this->nodequeue_get_info(1);
+
+    $html = $this->drupalGet('http://localhost'. url('node/'. $new_nid));
+    
+    $return = $this->clickLink($queue->link);
+    
+    $new_nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->assertEqual(count($nid_array) + 1, count($new_nid_array), '[nodequeue] Adding a new node to the queue from the node view increases the count: %s');
+    
+    $html = $this->drupalGet('http://localhost'. url('node/'. $new_nid)); // refresh!
+    
+    $return = $this->clickLink($queue->link_remove);
+    
+    $new_nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->assertEqual(count($nid_array), count($new_nid_array), '[nodequeue] Removing the new node from the queue from the node view returns the count to the original: %s');
+  }
+  
+  function test_add_node_from_node_view_and_delete_from_nodequeue_view() {
+    $nid_array = $this->nodequeue_get_nids(1);
+    
+    $new_nid = 7;
+    while (FALSE !== array_search($new_nid, $nid_array)) {
+      $new_nid++;
+    }
+    
+    $this->login_nodequeue_user();
+    
+    $queue = $this->nodequeue_get_info(1);
+
+    $html = $this->drupalGet('http://localhost'. url('node/'. $new_nid));
+    
+    $return = $this->clickLink($queue->link);
+    
+    $new_nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->assertEqual(count($nid_array) + 1, count($new_nid_array), '[nodequeue] Adding a new node to the queue from the node view increases the count: %s');
+    
+    $html = $this->drupalGet('http://localhost'. url('admin/content/nodequeue/1/view'));
+    
+    $return = $this->clickLink('Remove from queue', count($new_nid_array) -1);
+    
+    $new_nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->assertEqual(count($nid_array), count($new_nid_array), '[nodequeue] Removing the new node from the queue view should return the count to the original: %s');
+    
+    for($i = 0; $i < count($nid_array); $i++) {
+      $this->assertEqual($nid_array[$i], $new_nid_array[$i], '[nodequeue] After removing the new node from the queue the nodes should be in the same order: %s');
+    }
+  }
+  
+  
+  function test_move_node_down_and_up_in_nodequeue_view() {
+    $nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->login_nodequeue_user();
+    
+    $html = $this->drupalGet('http://localhost'. url('admin/content/nodequeue/1/view'));
+    
+    $return = $this->clickLink('Move up', 1);
+    
+    $new_nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->assertEqual(count($nid_array), count($new_nid_array), '[nodequeue] Moving the second node in the queue up one should not change the node queue count: %s');
+    
+    $this->assertEqual($nid_array[0], $new_nid_array[1], '[nodequeue] The first node should be in position two now: %s');
+    $this->assertEqual($nid_array[1], $new_nid_array[0], '[nodequeue] The second node should be in position one now: %s');
+    
+    $html = $this->drupalGet('http://localhost'. url('admin/content/nodequeue/1/view'));
+    
+    $return = $this->clickLink('Move down', 0);
+    
+    $new_nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->assertEqual(count($nid_array), count($new_nid_array), '[nodequeue] Returning the second node down one should not change the node queue count: %s');
+    
+    $this->assertEqual($nid_array[0], $new_nid_array[0], '[nodequeue] The first node should be back in position one now: %s');
+    $this->assertEqual($nid_array[1], $new_nid_array[1], '[nodequeue] The second node should be back in position two now: %s');
+  }
+
+  
+  function test_move_node_to_bottom_and_back_to_top_in_nodequeue_view() {
+    $nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->login_nodequeue_user();
+    
+    $html = $this->drupalGet('http://localhost'. url('admin/content/nodequeue/1/view'));
+    
+    $return = $this->clickLink('Move to back', 0);
+    
+    $new_nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->assertEqual(count($nid_array), count($new_nid_array), '[nodequeue] Moving the first item to the back should not change the node queue count: %s');
+    
+    $this->assertEqual($nid_array[0], $new_nid_array[count($new_nid_array) -1], '[nodequeue] The first node should be in last position now: %s');
+    $this->assertEqual($nid_array[1], $new_nid_array[0], '[nodequeue] The second node should be in position one now: %s');
+    
+    $html = $this->drupalGet('http://localhost'. url('admin/content/nodequeue/1/view'));
+    
+    $return = $this->clickLink('Move to front', count($nid_array) -1);
+    
+    $new_nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->assertEqual(count($nid_array), count($new_nid_array), '[nodequeue] Returning the second node down one should not change the node queue count: %s');
+    
+    for($i = 0; $i < count($nid_array); $i++) {
+      $this->assertEqual($nid_array[$i], $new_nid_array[$i], '[nodequeue] After reordering the queue the nodes should be in the same order: %s');
+    }
+  }
+  
+  function test_move_node_down_fails_lack_of_token() {
+    $nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->login_nodequeue_user();
+    
+    $html = $this->drupalGet('http://localhost'. url('admin/content/nodequeue/1/down/1/1'));
+    
+    $new_nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->assertEqual(count($nid_array), count($new_nid_array), '[nodequeue] After moving node down without token the node count should not change: %s');
+
+    for($i = 0; $i < count($nid_array); $i++) {
+      $this->assertEqual($nid_array[$i], $new_nid_array[$i], '[nodequeue] After moving node down without token the nodes should be in the same order: %s');
+    }
+  }
+  
+  function test_move_node_up_fails_lack_of_token() {
+    $nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->login_nodequeue_user();
+    
+    $html = $this->drupalGet('http://localhost'. url('admin/content/nodequeue/1/up/1/2'));
+    
+    $new_nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->assertEqual(count($nid_array), count($new_nid_array), '[nodequeue] After moving node up without token the node count should not change: %s');
+
+    for($i = 0; $i < count($nid_array); $i++) {
+      $this->assertEqual($nid_array[$i], $new_nid_array[$i], '[nodequeue] After moving node up without token the nodes should be in the same order: %s');
+    }
+  }
+  
+  function test_move_node_to_back_fails_lack_of_token() {
+    $nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->login_nodequeue_user();
+    
+    $html = $this->drupalGet('http://localhost'. url('admin/content/nodequeue/1/back/1/1'));
+    
+    $new_nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->assertEqual(count($nid_array), count($new_nid_array), '[nodequeue] After moving node to back without token the node count should not change: %s');
+
+    for($i = 0; $i < count($nid_array); $i++) {
+      $this->assertEqual($nid_array[$i], $new_nid_array[$i], '[nodequeue] After moving node to back without token the nodes should be in the same order: %s');
+    }
+  }
+  
+  function test_move_node_to_front_fails_lack_of_token() {
+    $nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->login_nodequeue_user();
+    
+    $max = count($nid_array) -1;
+    
+    $html = $this->drupalGet('http://localhost'. url('admin/content/nodequeue/1/front/1/'. $max));
+    
+    $new_nid_array = $this->nodequeue_get_nids(1);
+    
+    $this->assertEqual(count($nid_array), count($new_nid_array), '[nodequeue] After moving node to front without token the node count should not change: %s');
+
+    for($i = 0; $i < count($nid_array); $i++) {
+      $this->assertEqual($nid_array[$i], $new_nid_array[$i], '[nodequeue] After moving node to front without token the nodes should be in the same order: %s');
+    }
+  }
+  
+  /*
+   * =======================================================================================
+   * Helper Functions only below this line - no tests!
+   * =======================================================================================
+   */
+  
+  function login_nodequeue_user() {
+    $permissions = array('access comments', 'access content', 'post comments', 'post comments without approval', 'manipulate queues', 'administer nodequeue', 'manipulate all queues');
+    $admin_user = $this->drupalCreateUserRolePerm($permissions);
+    $this->drupalLoginUser($admin_user);
+  }
+  
+  function nodequeue_node_count($qid) {
+    $query = "SELECT COUNT(nid) FROM {nodequeue_nodes} WHERE qid = %d";
+    
+    return db_result(db_query($query, $qid));
+  }
+  
+  /**
+   * Helper function to get array of nodes in queue.
+   *
+   * @param int $qid
+   *   Queue id.
+   * @return array
+   *   Array of node ids.
+   */
+  function nodequeue_get_nids($qid) {
+    $results = array();
+    $query = "SELECT nid FROM {nodequeue_nodes} WHERE qid = %d order by position";
+    
+    $result = db_query($query, $qid);
+    while ($row = db_fetch_object($result)) {
+      $results[] = $row->nid;
+    }
+    
+    return $results;
+  }
+  
+  function nodequeue_get_info($qid) {
+    return db_fetch_object(db_query("SELECT * FROM {nodequeue_queue} WHERE qid = %d", $qid));
+  }
+}
+
+?>
