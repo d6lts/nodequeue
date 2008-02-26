@@ -278,11 +278,11 @@ function nodequeue_handler_queuelist($op, $argument) {
   if (isset($argument['#all_ok']) || isset($argument['value']['#all_ok'])) {
     $options[0] = t('<All>');
   }
-  
+
   if (isset($argument['#any_ok']) || isset($argument['value']['#any_ok'])) {
     $options[-1] = t('<Any>');
   }
-  
+
   $queues = nodequeue_load_queues(nodequeue_get_all_qids(NULL));
   foreach ($queues as $queue) {
     // no check plain necessary as this goes into a fieldset which takes
@@ -417,7 +417,7 @@ function nodequeue_handler_arg_reference($op, &$query, $argtype, $arg = '') {
       $query->ensure_table('nodequeue_subqueue', true);
       $query->add_where("nodequeue_subqueue.reference = %d", $arg);
       if ($argtype['options'] != -1) {
-       $query->add_where('nodequeue_subqueue.qid = %d', $argtype['options']); 
+       $query->add_where('nodequeue_subqueue.qid = %d', $argtype['options']);
       };
       break;
     case 'link':
@@ -442,6 +442,12 @@ function nodequeue_handler_filter_exclusion($op, $filter, $filterinfo, &$query) 
       'field' => 'nid',
     ),
   );
+
+  // If we're just checking for one queue, add the qid to our join info.
+  if (empty($value)) {
+    $joininfo['extra']['qid'] = $empty;
+  }
+
   $num = $query->add_table($table, true, 1, $joininfo);
   $tablename = $query->get_table_name($table, $num);
   $field = "$tablename.$column";
@@ -451,7 +457,7 @@ function nodequeue_handler_filter_exclusion($op, $filter, $filterinfo, &$query) 
   }
   else {
     // Not in a specific queue.
-    $query->add_where("$field IS NULL OR $field != %d", $value);
+    $query->add_where("$field IS NULL", $value);
   }
 }
 
