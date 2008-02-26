@@ -53,17 +53,22 @@ function action_nodequeue_add($op, $edit = array(), $node) {
       foreach ($queues as $qid => $queue) {
         $options[$qid] = $queue->title;
       }
-
-      // add form components
-      $form['qids'] = array(
-        '#type' => 'select',
-        '#title' => t("Queue"),
-        '#default_value' => $edit['qids'],
-        '#multiple' => TRUE,
-        '#options' => $options,
-        '#required' => TRUE,
-        '#description' => t('Specify the queues into which the node should be submitted. If the queue is a smartqueue, the node shall be placed into every subqueue for which it is eligible.')
-      );
+      $form = array();
+      if (count($options)) {
+        // add form components
+        $form['qids'] = array(
+          '#type' => 'select',
+          '#title' => t("Queue"),
+          '#default_value' => $edit['qids'],
+          '#multiple' => TRUE,
+          '#options' => $options,
+          '#required' => TRUE,
+          '#description' => t('Specify the queues into which the node should be submitted. If the queue is a smartqueue, the node shall be placed into every subqueue for which it is eligible.')
+          );
+      }
+      else {
+        drupal_set_message(t('Please <a href="!url">create</a> a nodequeue first.', array('!url' => url('admin/content/nodequeue'))));
+      }
       return $form;
 
      // validate the HTML form
