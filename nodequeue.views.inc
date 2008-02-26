@@ -452,21 +452,14 @@ function nodequeue_handler_filter_exclusion($op, $filter, $filterinfo, &$query) 
   );
 
   // If we're just checking for one queue, add the qid to our join info.
-  if (empty($value)) {
+  if (!empty($value)) {
     $joininfo['extra']['qid'] = $empty;
   }
 
   $num = $query->add_table($table, true, 1, $joininfo);
   $tablename = $query->get_table_name($table, $num);
   $field = "$tablename.$column";
-  if (empty($value)) {
-    // Not in any queues.
-    $query->add_where("$field IS NULL");
-  }
-  else {
-    // Not in a specific queue.
-    $query->add_where("$field IS NULL", $value);
-  }
+  $query->add_where("$field IS NULL");
 }
 
 /**
