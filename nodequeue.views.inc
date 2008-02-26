@@ -35,6 +35,14 @@ function nodequeue_views_tables() {
         'handler' => 'nodequeue_views_ajax_link',
         'notafield' => true,
       ),
+      'nodequeue_link' => array(
+        'name' => t('NodeQueue: Link to nodequeue tab'),
+        'sortable' => false,
+        'notafield' => TRUE,
+        'handler' => 'nodequeue_views_tab_link',
+        'option' => 'string',
+        'help' => t('Display a link to the nodequeue tab for the node.  Enter the text of this link into the option field; if blank the default "Node queues" will be used.'),
+      ),
     ),
     "filters" => array(
       "qid" => array(
@@ -466,4 +474,12 @@ function nodequeue_handler_filter_exclusion($op, $filter, $filterinfo, &$query) 
  */
 function nodequeue_views_ajax_link($fieldinfo, $fielddata, $value, $data) {
   return theme('links', nodequeue_link('node', node_load($data->nid)));
+}
+
+/**
+ * display a link to view a node
+ */
+function nodequeue_views_tab_link($fieldinfo, $fielddata, $value, $data) {
+  $link_text = $fielddata['options'] ? $fielddata['options'] : t('Node queues');
+  return l($link_text, "node/$data->nid/nodequeue");
 }
