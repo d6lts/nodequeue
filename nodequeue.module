@@ -249,7 +249,9 @@ function nodequeue_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
  * Implementation of hook_link
  */
 function nodequeue_link($type, $node = NULL, $teaser = FALSE) {
-  if ($type == 'node' && variable_get('nodequeue_links', FALSE) && user_access('manipulate queues')) {
+  if ($type == 'node' &&
+      variable_get('nodequeue_links', FALSE) &&
+      user_access('manipulate queues')) {
     $queues = nodequeue_load_queues_by_type($node->type, 'links');
     $subqueues = nodequeue_get_subqueues_by_node($queues, $node);
     if (empty($subqueues)) {
@@ -270,19 +272,20 @@ function nodequeue_link($type, $node = NULL, $teaser = FALSE) {
 
     foreach ($subqueues as $subqueue) {
       $queue = $queues[$subqueue->qid];
+      $query_string = nodequeue_get_query_string($node->nid, TRUE);
       if (!isset($subqueue->position)) {
         $links['nodequeue-ajax-toggle-' . $subqueue->sqid] = array(
           'title' => nodequeue_title_substitute($queue->link, $queue, $subqueue),
           'href' => "admin/content/nodequeue/$queue->qid/add/$subqueue->sqid/$node->nid",
           'attributes' => array('class' => 'nodequeue-ajax-toggle'),
-          'query' => drupal_get_destination());
+          'query' => $query_string);
       }
       else if ($queue->link_remove) {
         $links['nodequeue-ajax-toggle-' . $subqueue->sqid] = array(
           'title' => nodequeue_title_substitute($queue->link_remove, $queue, $subqueue),
           'href' => "admin/content/nodequeue/$queue->qid/remove-node/$subqueue->sqid/$node->nid",
           'attributes' => array('class' => 'nodequeue-ajax-toggle'),
-          'query' => drupal_get_destination());
+          'query' => $query_string);
       }
     }
     drupal_add_js(drupal_get_path('module', 'nodequeue') .'/nodequeue.js');
@@ -319,21 +322,26 @@ function nodequeue_js_output($label, $href, $count = NULL, $sqid = NULL) {
  * Page callback to add a node to a queue.
  */
 function nodequeue_admin_add_node($queue, $subqueue, $node) {
+  if (!nodequeue_check_token($node->nid)) {
+    return drupal_goto();
+  }
+
   nodequeue_subqueue_add($queue, $subqueue, $node->nid);
 
   // Provide a response if this is javascript.
   if (!empty($_POST['js'])) {
     if (isset($_GET['tab'])) {
       nodequeue_js_output(t('Remove from queue'),
-        url("admin/content/nodequeue/$queue->qid/remove-node/$subqueue->sqid/$node->nid", "tab"),
+        url("admin/content/nodequeue/$queue->qid/remove-node/$subqueue->sqid/$node->nid", nodequeue_get_query_string($node->nid, TRUE, array('tab'))),
         nodequeue_subqueue_size_text($queue->size, $queue->size ? min($subqueue->count + 1, $queue->size) : $subqueue->count + 1, FALSE),
         $subqueue->sqid);
     }
     else {
       nodequeue_js_output(nodequeue_title_substitute($queue->link_remove, $queue, $subqueue),
-        url("admin/content/nodequeue/$queue->qid/remove-node/$subqueue->sqid/$node->nid"));
+        url("admin/content/nodequeue/$queue->qid/remove-node/$subqueue->sqid/$node->nid", nodequeue_get_query_string($node->nid, TRUE)));
     }
   }
+
   // There should always be a destination set for this, so just goto wherever.
   drupal_goto();
 }
@@ -342,21 +350,26 @@ function nodequeue_admin_add_node($queue, $subqueue, $node) {
  * Page callback to remove a node from a queue.
  */
 function nodequeue_admin_remove_node($queue, $subqueue, $node) {
+  if (!nodequeue_check_token($node->nid)) {
+    return drupal_goto();
+  }
+
   nodequeue_subqueue_remove_node($subqueue->sqid, $node->nid);
 
   // Provide a response if this is javascript.
   if (!empty($_POST['js'])) {
     if (isset($_GET['tab'])) {
       nodequeue_js_output(t('Add to queue'),
-        url("admin/content/nodequeue/$queue->qid/add/$subqueue->sqid/$node->nid", "tab"),
+        url("admin/content/nodequeue/$queue->qid/add/$subqueue->sqid/$node->nid", nodequeue_get_query_string($node->nid, TRUE, array('tab'))),
         nodequeue_subqueue_size_text($queue->size, $subqueue->count - 1, FALSE),
         $subqueue->sqid);
     }
     else {
       nodequeue_js_output(nodequeue_title_substitute($queue->link, $queue, $subqueue),
-        url("admin/content/nodequeue/$queue->qid/add/$subqueue->sqid/$node->nid"));
+        url("admin/content/nodequeue/$queue->qid/add/$subqueue->sqid/$node->nid", nodequeue_get_query_string($node->nid, TRUE)));
     }
   }
+
   // There should always be a destination set for this, so just goto wherever.
   drupal_goto();
 }
@@ -389,7 +402,7 @@ function nodequeue_node_tab($node, $queues) {
         t('Add to queue'),
         "admin/content/nodequeue/$queue->qid/add/$subqueue->sqid/$node->nid",
         array('class' => 'nodequeue-ajax-toggle'),
-        drupal_get_destination() . '&tab'
+        drupal_get_destination() .'&tab&'. nodequeue_get_token($node->nid)
       );
     }
     else {
@@ -397,7 +410,7 @@ function nodequeue_node_tab($node, $queues) {
         t('Remove from queue'),
         "admin/content/nodequeue/$queue->qid/remove-node/$subqueue->sqid/$node->nid",
         array('class' => 'nodequeue-ajax-toggle'),
-        drupal_get_destination() . '&tab'
+        drupal_get_destination() .'&tab&'. nodequeue_get_token($node->nid)
       );
     }
     $row = array();
@@ -770,41 +783,43 @@ function nodequeue_admin_view($queue, $sqid = NULL) {
 function nodequeue_arrange_subqueue_entry($queue, $subqueue, $node) {
   $qid = $queue->qid;
   $sqid = $subqueue->sqid;
+  $query_string = nodequeue_get_query_string($node->position, TRUE);
+
   $buttons = l(
     theme('image', drupal_get_path('module', 'nodequeue') .'/images/go-up.png', t('Move up')),
     "admin/content/nodequeue/$qid/up/$sqid/$node->position",
     array(
       'title' => t('Move up'),
       'class' => 'nodequeue-move-up',
-    ), drupal_get_destination(), NULL, FALSE, TRUE);
+    ), $query_string, NULL, FALSE, TRUE);
   $buttons .= l(
     theme('image', drupal_get_path('module', 'nodequeue') .'/images/go-down.png', t('Move down')),
     "admin/content/nodequeue/$qid/down/$sqid/$node->position",
     array(
       'title' => t('Move down'),
       'class' => 'nodequeue-move-down',
-    ), drupal_get_destination(), NULL, FALSE, TRUE);
+    ), $query_string, NULL, FALSE, TRUE);
   $buttons .= l(
     theme('image', drupal_get_path('module', 'nodequeue') .'/images/go-top.png', t('Move to front')),
     "admin/content/nodequeue/$qid/front/$sqid/$node->position",
     array(
       'title' => t('Move to front'),
       'class' => 'nodequeue-move-front',
-    ), drupal_get_destination(), NULL, FALSE, TRUE);
+    ), $query_string, NULL, FALSE, TRUE);
   $buttons .= l(
     theme('image', drupal_get_path('module', 'nodequeue') .'/images/go-bottom.png', t('Move to back')),
     "admin/content/nodequeue/$qid/back/$sqid/$node->position",
     array(
       'title' => t('Move to back'),
       'class' => 'nodequeue-move-back',
-    ), drupal_get_destination(), NULL, FALSE, TRUE);
+    ), $query_string, NULL, FALSE, TRUE);
   $buttons .= l(
     theme('image', drupal_get_path('module', 'nodequeue') .'/images/delete.png', t('Remove from queue')),
     "admin/content/nodequeue/$qid/remove/$sqid/$node->position",
     array(
       'title' => t('Remove from queue'),
       'class' => 'nodequeue-remove',
-    ), drupal_get_destination(), NULL, FALSE, TRUE);
+    ), $query_string, NULL, FALSE, TRUE);
 
   $output = '<tr id="nodequeue-row-' . $node->position . '" class="nodequeue-row ' . ($node->position % 2 ? 'odd' : 'even') . '">';
   $output .= '<td>' . l($node->title, "node/$node->nid") . '</td>';
@@ -1094,6 +1109,10 @@ function nodequeue_arrange_subqueue_form_submit($form_id, $form_values) {
  * javascript is disabled in the client, and is a fallback technique.
  */
 function nodequeue_admin_up($queue, $subqueue, $pos) {
+  if (!nodequeue_check_token($pos)) {
+    return drupal_goto();
+  }
+
   // This function is safe if $pos is out of bounds.
   if (!$queue->reverse) {
     nodequeue_queue_up($subqueue, $pos);
@@ -1109,6 +1128,10 @@ function nodequeue_admin_up($queue, $subqueue, $pos) {
  * javascript is disabled in the client, and is a fallback technique.
  */
 function nodequeue_admin_down($queue, $subqueue, $pos) {
+  if (!nodequeue_check_token($pos)) {
+    return drupal_goto();
+  }
+
   // This function is safe if $pos is out of bounds.
   if ($queue->reverse) {
     nodequeue_queue_up($subqueue, $pos);
@@ -1124,6 +1147,10 @@ function nodequeue_admin_down($queue, $subqueue, $pos) {
  * only if javascript is disabled in the client, and is a fallback technique.
  */
 function nodequeue_admin_front($queue, $subqueue, $pos) {
+  if (!nodequeue_check_token($pos)) {
+    return drupal_goto();
+  }
+
   // This function is safe if $pos is out of bounds.
   if (!$queue->reverse) {
     nodequeue_queue_front($subqueue, $pos);
@@ -1139,6 +1166,10 @@ function nodequeue_admin_front($queue, $subqueue, $pos) {
  * only if javascript is disabled in the client, and is a fallback technique.
  */
 function nodequeue_admin_back($queue, $subqueue, $pos) {
+  if (!nodequeue_check_token($node->nid)) {
+    return drupal_goto();
+  }
+
   // This function is safe if $pos is out of bounds.
   if ($queue->reverse) {
     nodequeue_queue_front($subqueue, $pos);
@@ -1157,7 +1188,12 @@ function nodequeue_admin_back($queue, $subqueue, $pos) {
  * multiple times.
  */
 function nodequeue_admin_remove($queue, $subqueue, $pos) {
+  if (!nodequeue_check_token($node->nid)) {
+    return drupal_goto();
+  }
+
   nodequeue_subqueue_remove($subqueue->sqid, $pos);
+
   drupal_goto();
 }
 
@@ -1939,7 +1975,7 @@ function nodequeue_queue_front($subqueue, $position) {
   $entry = db_fetch_object(db_query("SELECT * FROM {nodequeue_nodes} WHERE sqid= %d AND position = %d", $subqueue->sqid, $position));
   db_query("DELETE FROM {nodequeue_nodes} WHERE sqid = %d AND position = %d", $subqueue->sqid, $position);
   db_query("UPDATE {nodequeue_nodes} SET position = position + 1 WHERE sqid= %d AND position < %d", $subqueue->sqid, $position);
-  db_query("INSERT INTO {nodequeue_nodes} (sqid, nid, position, timestamp) VALUES (%d, %d, 1, %d)", $subqueue->sqid, $entry->nid, $entry->timestamp);
+  db_query("INSERT INTO {nodequeue_nodes} (qid, sqid, nid, position, timestamp) VALUES (%d, %d, %d, 1, %d)", $entry->qid, $subqueue->sqid, $entry->nid, $entry->timestamp);
 }
 
 /**
@@ -1951,7 +1987,7 @@ function nodequeue_queue_back($subqueue, $position) {
   $entry = db_fetch_object(db_query("SELECT * FROM {nodequeue_nodes} WHERE sqid = %d AND position = %d", $subqueue->sqid, $position));
   db_query("DELETE FROM {nodequeue_nodes} WHERE sqid = %d AND position = %d", $subqueue->sqid, $position);
   db_query("UPDATE {nodequeue_nodes} SET position = position - 1 WHERE sqid = %d AND position > %d", $subqueue->sqid, $position);
-  db_query("INSERT INTO {nodequeue_nodes} (sqid, nid, position, timestamp) VALUES (%d, %d, %d, %d)", $subqueue->sqid, $entry->nid, $subqueue->count, $entry->timestamp);
+  db_query("INSERT INTO {nodequeue_nodes} (qid, sqid, nid, position, timestamp) VALUES (%d, %d, %d, %d, %d)", $entry->qid, $subqueue->sqid, $entry->nid, $subqueue->count, $entry->timestamp);
 }
 
 /**
@@ -2339,4 +2375,55 @@ function nodequeue_admin_settings() {
     '#description' => t('If nodes will have a menu tab for manipulating related node queues, what should that tab be called?'),
   );
   return system_settings_form($form);
+}
+
+/**
+ * Generate a query string to use on nodequeue's private links.
+ *
+ * @param $seed
+ *   The seed to use when generating a token. If NULL no token will
+ *   be generated.
+ * @param $destination
+ *   The destination to use. If FALSE one won't be used; if TRUE
+ *   one will be generated from drupal_get_destination().
+ * @param $query
+ *   An array of additional items to add to the query.
+ *
+ * @return
+ *   The query string suitable for use in the l() function.
+ */
+function nodequeue_get_query_string($seed, $destination = FALSE, $query = array()) {
+  if ($dest = drupal_get_destination()) {
+    $query[] = $dest;
+  }
+
+  if (isset($seed)) {
+    $query[] = nodequeue_get_token($seed);
+  }
+
+  return implode('&', $query);
+}
+
+/**
+ * Get a private token used to protect nodequeue's links from spoofing.
+ */
+function nodequeue_get_token($nid) {
+  return 'token=' . drupal_get_token($nid);
+}
+
+/**
+ * Check to see if the token generated from seed matches.
+ */
+function nodequeue_check_token($seed) {
+  return drupal_get_token($seed) == $_GET['token'];
+}
+
+/**
+ * Implementation of hook_simpletest().
+ *
+ */
+function nodequeue_simpletest() {
+  $dir = drupal_get_path('module', 'nodequeue') .'/tests';
+  $tests = file_scan_directory($dir, '\.test$');
+  return array_keys($tests);
 }
