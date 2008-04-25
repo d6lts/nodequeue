@@ -145,6 +145,7 @@ function smartqueue_build_string($arrays) {
 function smartqueue_taxonomy_nodequeue_subqueue_title($queue, $reference) {
   $vids = explode('-', $queue->reference);
   $tids = explode('-', $reference);
+  $titles = array();
   foreach ($vids as $vid) {
     $tid = array_shift($tids);
     // $tid can be 0, specifically meaning this term is unset.
