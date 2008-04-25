@@ -61,7 +61,6 @@ function smartqueue_author_nodequeue_subqueues(&$queue, $node) {
   $rids = !empty($queue->reference) ? explode('-', $queue->reference) : array();
 
   $account = user_load(array('uid' => $node->uid));
-  dsm("$node->uid: $account->name");
   if (!empty($rids) && !array_intersect($rids, array_keys($user->roles))) {
     return;
   }
