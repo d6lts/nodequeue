@@ -21,6 +21,10 @@ function nodequeue_init() {
     include_once drupal_get_path('module', 'nodequeue') . '/nodequeue.actions.inc';
   }
 
+  if (module_exists('workflow_ng')) {
+    include_once drupal_get_path('module', 'nodequeue') . '/nodequeue.workflow_ng.inc';
+  }
+  
   if (module_exists('views')) {
     include_once drupal_get_path('module', 'nodequeue') . '/nodequeue.views.inc';
   }
