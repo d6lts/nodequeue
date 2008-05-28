@@ -181,6 +181,11 @@ function nodequeue_views_arguments() {
       ),
       'help' => t('The Queue Title argument allows users to filter a view by specifying a Subqueue Title. Use the Option to restrict this to just one queue.'),
     ),
+     'nodequeue_pos' => array(
+      'name' => t("NodeQueue: Position in queue"),
+      'handler' => "nodequeue_handler_arg_pos",
+      'help' => t('Filter by the position of the node in the queue'),
+    ),
     "nodequeue_sqid" => array(
       'name' => t("NodeQueue: Subqueue ID"),
       'handler' => "nodequeue_handler_arg_sqid",
@@ -311,6 +316,32 @@ function nodequeue_handler_subqueuelist($op, $argument) {
     $items[$subqueue->sqid] = $subqueue->title;
   }
   return $items;
+}
+
+function nodequeue_handler_arg_pos($op, &$query, $argtype, $arg = '') {
+  switch($op) {
+    case 'summary':
+      $query->ensure_table('nodequeue_nodes', true);
+      $query->add_field('title', 'nodequeue_subqueue');
+      $query->add_field('position', 'nodequeue_nodes');
+      $query->add_where('nodequeue_nodes.position IS NOT NULL');
+      $fieldinfo['field'] = "nodequeue_nodes.position";
+      return $fieldinfo;
+      break;
+    case 'sort':
+      $query->add_orderby('nodequeue_nodes', 'position', $argtype);
+      break;
+    case 'filter':
+      $pos = intval($arg);
+      $query->ensure_table('nodequeue_nodes', true);
+      $query->add_where("nodequeue_nodes.position = %d", $pos);
+      break;
+    case 'link':
+      return l($query->title, "$arg/" . intval($query->position));
+    case 'title':
+      //$queue = db_fetch_object(db_query("SELECT title FROM {nodequeue_subqueue} WHERE qid = %d", $query));
+      return check_plain($query);
+  }
 }
 
 function nodequeue_handler_arg_qid($op, &$query, $argtype, $arg = '') {
