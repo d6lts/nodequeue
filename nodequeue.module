@@ -22,9 +22,15 @@ function nodequeue_init() {
   }
 
   if (module_exists('workflow_ng')) {
-    include_once drupal_get_path('module', 'nodequeue') . '/nodequeue.workflow_ng.inc';
+  	if (module_exists('actions')) {
+  		// Workflow_ng and actions module can't work together becuase of API collision.
+  		drupal_set_message(t('Nodequeue\'s integration with workflow_ng module couldn\'t intizalize as actions module is enabled. Actions module and workflow_ng can\'t be enabled in the same time.'));
+  	}
+  	else {
+  	 include_once drupal_get_path('module', 'nodequeue') . '/nodequeue.workflow_ng.inc';	
+  	}
+    
   }
-  
   if (module_exists('views')) {
     include_once drupal_get_path('module', 'nodequeue') . '/nodequeue.views.inc';
   }
