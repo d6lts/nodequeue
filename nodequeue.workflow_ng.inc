@@ -19,7 +19,7 @@ function nodequeue_action_info() {
         'nodequeue' => array('#entity' => 'nodequeue', '#label' => t('Nodequeue')),
       ),
       '#description' => t('Load a nodequeue as a new argument. This action must be used before any other action on
-        a nodequeue can be preformed.'),
+        a nodequeue can be performed.'),
       '#module' => 'Nodequeue',
    );
    $info['nodequeue_workflow_ng_action_add_node_to_nodequeue'] = array(
@@ -243,3 +243,5 @@ function nodequeue_workflow_ng_action_add_nodequeue_submit($form_id, $form_value
   foreach ($form_list as $form_item) {
     $settings[$form_item] = $form_values[$form_item];
   }
+  return $token + $settings;
+}
