@@ -629,7 +629,7 @@ function nodequeue_edit_queue_form($queue) {
     '#options' => $nodes,
     '#description' => t('Check each node type that can be added to this queue.'),
   );
-
+  drupal_set_message("theirs". dprint_r($nodes, TRUE));
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Submit'),

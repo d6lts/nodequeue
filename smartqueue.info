@@ -3,3 +3,9 @@ name = Smart Queue Taxonomy
 description = Creates a node queue for each taxonomy vocabulary
 package = Node Queue
 dependencies = nodequeue taxonomy
+
+; Information added by drupal.org packaging script on 2008-07-04
+version = "5.x-2.1"
+project = "nodequeue"
+datestamp = "1215190818"
+
