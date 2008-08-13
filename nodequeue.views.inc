@@ -49,6 +49,7 @@ function nodequeue_views_tables() {
         'name' => t("NodeQueue: Queue"),
         'value' => array(
           '#type' => 'select',
+          '#multiple' => TRUE,
           '#options' => 'nodequeue_handler_queuelist',
           '#simple_queues' => TRUE,
         ),
