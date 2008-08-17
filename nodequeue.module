@@ -725,7 +725,8 @@ function nodequeue_edit_queue_form_submit($formid, $form) {
   $queue->show_in_links = !empty($queue->link) && !empty($queue->link_remove);
 
   nodequeue_api_queue_form_submit($queue, $form);
-
+  //nodequeue_propagate_subqueue_title_change($qid);
+  
   $qid = nodequeue_save($queue);
 
   nodequeue_api_queue_form_submit_finish($queue, $form);
@@ -740,6 +741,7 @@ function nodequeue_edit_queue_form_submit($formid, $form) {
   }
   return 'admin/content/nodequeue';
 }
+
 
 /**
  * Confirm form to delete a queue
@@ -1778,6 +1780,7 @@ function nodequeue_save(&$queue) {
   }
 
   if (isset($queue->add_subqueue) && is_array($queue->add_subqueue)) {
+    drupal_set_message(dprint_r($queue->add_subqeueue, TRUE));
     foreach ($queue->add_subqueue as $reference => $title) {
       // If reference is unset it should be set to the qid; this is generally
       // used for a single subqueue; setting the reference to the qid makes
@@ -1785,6 +1788,7 @@ function nodequeue_save(&$queue) {
       if ($reference == 0) {
         $reference = $queue->qid;
       }
+      drupal_set_message("this ran once");
       nodequeue_add_subqueue($queue, $title, $reference);
     }
   }
@@ -2033,6 +2037,9 @@ function nodequeue_get_subqueue_position($sqid, $nid) {
  * Get the position of a node in several subqueues.
  */
 function nodequeue_set_subqueue_positions(&$subqueues, $nid) {
+  if (!$subqueues){
+    drupal_set_message(dprint_r(debug_backtrace(), TRUE));
+  }
   $result = db_query("SELECT sqid, MIN(position) AS position FROM {nodequeue_nodes} WHERE sqid IN (%s) AND nid = %d GROUP BY sqid", implode(', ', array_keys($subqueues)), $nid);
   while ($obj = db_fetch_object($result)) {
     $subqueues[$obj->sqid]->position = $obj->position;
