@@ -618,9 +618,7 @@ function nodequeue_edit_queue_form($queue) {
     '#description' => t('Check each role that can add nodes to the queue. Be sure that roles you want to appear here have "manipulate queues" access in the main access control panel.'),
   );
 
-  foreach (node_get_types() as $type => $info) {
-    $nodes[$type] = $info->name;
-  }
+  $nodes = node_get_types('names');
 
   $form['types'] = array(
     '#type' => 'checkboxes',
