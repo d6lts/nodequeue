@@ -462,40 +462,11 @@ function nodequeue_view_queues() {
     return t('No node queues exist.');
   }
 
-  $header = array(
-    array('data' => t('Title'), 'field' => 'title', 'sort' => 'asc'),
-    array('data' => t('Max nodes'), 'field' => 'size'),
-    array('data' => t('Subqueues'), 'field' => 'subqueues'),
-    array('data' => t('Operation')),
-  );
-  $table_sort = tablesort_init($header);
-
   $qids = array();
-  $sort_primary = array();
-  $sort_secondary = array();
-  $sort_direction_regular = array('asc' => SORT_ASC, 'desc' => SORT_DESC);
-  $sort_direction_reverse = array('asc' => SORT_DESC, 'desc' => SORT_ASC);
+  // For every queue that has exactly 1 subqueue,
   foreach ($queues as $queue) {
-    // If a queue has only one subqueue, store the qid so we can display
-    // the number of nodes in the subqueue.
     if ($queue->subqueues == 1) {
       $qids[] = $queue->qid;
-    }
-    $sort_secondary[] = $queue->title;
-    switch ($table_sort['sql']) {
-      case 'title':
-      default:
-        $sort_primary[] = $queue->title;
-        $sort_direction = $sort_direction_regular;
-        break;
-      case 'size':
-        $sort_primary[] = $queue->size;
-        $sort_direction = $sort_direction_reverse;
-        break;
-      case 'subqueues':
-        $sort_primary[] = $queue->subqueues;
-        $sort_direction = $sort_direction_regular;
-        break;
     }
   }
 
