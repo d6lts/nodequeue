@@ -1070,6 +1070,7 @@ function nodequeue_arrange_subqueue_form_validate($form_id, $form_values, $form)
  * Submit function for nodequeue_arrange_subqueue_form
  */
 function nodequeue_arrange_subqueue_form_submit($form_id, $form_values) {
+  drupal_set_message($form_values['order']);
   // Add a node to the queue if that's the intention.
   if ($form_values['op'] == t('Clear')) {
     return 'admin/content/nodequeue/' . $form_values['qid'] . '/clear/' . $form_values['sqid'];
@@ -1094,14 +1095,19 @@ function nodequeue_arrange_subqueue_form_submit($form_id, $form_values) {
     if ($queue->reverse xor $form_values['op'] == t('Reverse')) {
       $order = array_reverse($order);
     }
-
+  drupal_set_message("order". dprint_r($order, TRUE));
+  drupal_set_message("nids". dprint_r($nids, TRUE));
     foreach ($order as $new_pos => $old_pos) {
+      
       if ($sql) {
         $sql .= ', ';
       }
       $sql .= ' (%d, %d, %d, %d, %d)';
       $args[] = $form_values['sqid'];
       $args[] = $form_values['qid'];
+      if (!($nids[$old_pos] > 0)) {
+        drupal_set_message("zero condition with nids ". dprint_r($nids, TRUE). "and old_pos". dprint_r($old_pos, TRUE));
+      }
       $args[] = $nids[$old_pos];
 
       // $new_pos starts from 0 but we start from 1.
@@ -1109,6 +1115,7 @@ function nodequeue_arrange_subqueue_form_submit($form_id, $form_values) {
       $args[] = $now;
       $subqueue->count++;
     }
+    //drupal_set_message("args = ". dprint_r($args, TRUE));
     $sql = "INSERT INTO {nodequeue_nodes} (sqid, qid, nid, position, timestamp) VALUES $sql";
     db_query($sql, $args);
     if ($queue->size) {
@@ -1168,7 +1175,6 @@ function nodequeue_admin_front($queue, $subqueue, $pos) {
   if (!nodequeue_check_token($pos)) {
     return drupal_goto();
   }
-
   // This function is safe if $pos is out of bounds.
   if (!$queue->reverse) {
     nodequeue_queue_front($subqueue, $pos);
@@ -1598,13 +1604,15 @@ function nodequeue_load($qid) {
  *
  * @param $sqids
  *   An array of subqueue IDs to load.
+ * @param $bypass_cache
+ *   Boolean value indicating whether to bypass the cache or not.
  */
-function nodequeue_load_subqueues($sqids) {
+function nodequeue_load_subqueues($sqids, $bypass_cache = FALSE) {
   static $cache = array();
   $to_load = array();
 
   foreach ($sqids as $sqid) {
-    if (!isset($cache[$sqid])) {
+    if ($bypass_cache || !isset($cache[$sqid])) {
       $to_load[] = $sqid;
     }
   }
@@ -1633,9 +1641,11 @@ function nodequeue_load_subqueues($sqids) {
  *
  * @param $sqid
  *   The subqueue ID to load.
+ * @param $bypass_cache
+ *   Boolean value indicating whether to bypass the cache or not.
  */
-function nodequeue_load_subqueue($sqid) {
-  $subqueues = nodequeue_load_subqueues(array($sqid));
+function nodequeue_load_subqueue($sqid, $bypass_cache = FALSE) {
+  $subqueues = nodequeue_load_subqueues(array($sqid), $bypass_cache);
   if ($subqueues) {
     return array_shift($subqueues);
   }
@@ -1866,7 +1876,6 @@ function nodequeue_subqueue_add($queue, $subqueue, $nid) {
     // 0 means infinity so never do this if false
     nodequeue_check_subqueue_size($queue, $subqueue, $queue->size - 1);
   }
-
   db_query("INSERT INTO {nodequeue_nodes} (sqid, qid, nid, position, timestamp) VALUES (%d, %d, %d, %d, %d)", $subqueue->sqid, $queue->qid, $nid, $subqueue->count + 1, time());
 }
 
