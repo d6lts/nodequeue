@@ -24,15 +24,15 @@ function nodequeue_install() {
         db_query("CREATE TABLE if not exists {nodequeue_roles} (
           qid int(10) unsigned NOT NULL,
           rid int(10) unsigned,
-          KEY {nodequeue_roles}_qid_idx (qid),
-          KEY {nodequeue_roles}_rid_idx (rid)
+          KEY (qid),
+          KEY (rid)
         )/*!40100 DEFAULT CHARACTER SET utf8 */");
 
         db_query("CREATE TABLE if not exists {nodequeue_types} (
           qid int(10) unsigned NOT NULL,
           type varchar(255),
-          KEY {nodequeue_types}_qid_idx (qid),
-          KEY {nodequeue_types}_type_idx (type)
+          KEY (qid),
+          KEY (type)
         )/*!40100 DEFAULT CHARACTER SET utf8 */");
 
         // Subqueues are minor queues that inherit all of the properties of
@@ -44,9 +44,9 @@ function nodequeue_install() {
           qid int(10) unsigned NOT NULL,
           reference varchar(255) default 0,
           title varchar(255) default '',
-          KEY {nodequeue_subqueue}_qid_idx (qid),
-          KEY {nodequeue_subqueue}_reference_idx (reference),
-          KEY {nodequeue_subqueue}_title_idx (title)
+          KEY (qid),
+          KEY (reference),
+          KEY (title)
         )/*!40100 DEFAULT CHARACTER SET utf8 */");
 
         db_query("CREATE TABLE if not exists {nodequeue_nodes} (
@@ -55,8 +55,8 @@ function nodequeue_install() {
           nid int(10) unsigned,
           position int(3) unsigned,
           timestamp int unsigned NOT NULL default '0',
-          KEY {nodequeue_nodes}_sqid_idx (sqid, position),
-          KEY {nodequeue_nodes}_nid_idx (nid)
+          KEY (sqid, position),
+          KEY (nid)
         )/*!40100 DEFAULT CHARACTER SET utf8 */");
       $success = TRUE;
       break;
