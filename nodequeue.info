@@ -1,7 +1,7 @@
 ; $Id$
-name = Node Queue
+name = Nodequeue
 description = Create queues which can contain nodes in arbitrary order
-package = Node Queue
+package = Nodequeue
 
 ; Information added by drupal.org packaging script on 2008-07-04
 version = "5.x-2.1"
