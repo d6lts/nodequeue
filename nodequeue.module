@@ -1071,7 +1071,6 @@ function nodequeue_arrange_subqueue_form_validate($form_id, $form_values, $form)
  * Submit function for nodequeue_arrange_subqueue_form
  */
 function nodequeue_arrange_subqueue_form_submit($form_id, $form_values) {
-  drupal_set_message($form_values['order']);
   // Add a node to the queue if that's the intention.
   if ($form_values['op'] == t('Clear')) {
     return 'admin/content/nodequeue/' . $form_values['qid'] . '/clear/' . $form_values['sqid'];
