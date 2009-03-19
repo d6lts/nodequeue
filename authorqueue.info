@@ -3,10 +3,3 @@ name = Smart Queue Author
 description = Creates a node queue for each node author
 package = Node Queue
 dependencies = nodequeue
-
-
-; Information added by drupal.org packaging script on 2008-07-04
-version = "5.x-2.1"
-project = "nodequeue"
-datestamp = "1215190818"
-
