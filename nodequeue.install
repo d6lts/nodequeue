@@ -429,7 +429,7 @@ function nodequeue_update_6005() {
  * Renaming indices so that they're consistent with what Schema module would expect
  */
 function nodequeue_update_6006() {
-  $results = array();
+  $ret = array();
 
   // Delete existing indexes
   $del_indices = array(
@@ -440,11 +440,11 @@ function nodequeue_update_6006() {
   );
   foreach($del_indices as $table => $indices) {
     foreach($indices as $k => $index) {
-      db_drop_index($results, $table, $table . "_" . $index . "_idx");
+      db_drop_index($ret, $table, $table . "_" . $index . "_idx");
     }
   }
   // Naming convention incorrect for this one
-  db_drop_index($results, "nodequeue_nodes", "nodequeue_subqueue_nid_idx");
+  db_drop_index($ret, "nodequeue_nodes", "nodequeue_subqueue_nid_idx");
 
   // Create new indexes
   $add_indexes = array(
@@ -469,9 +469,10 @@ function nodequeue_update_6006() {
   );
   foreach($add_indexes as $table => $indices) {
     foreach($indices as $name => $columns) {
-      db_add_index($results, $table, $name, $columns);
+      db_add_index($ret, $table, $name, $columns);
     }
   }
+  return $ret;
 }
 
 function nodequeue_install() {
