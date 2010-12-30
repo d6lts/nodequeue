@@ -1350,7 +1350,10 @@ function nodequeue_clear_confirm_submit($form, &$form_state) {
 /**
  * Page callback for autocomplete.
  */
-function nodequeue_autocomplete($sqid = NULL, $string = NULL) {
+function nodequeue_autocomplete() {
+  $args = func_get_args();
+  $sqid = array_shift($args);
+  $string = implode('/', $args);
   $matches = _nodequeue_autocomplete($sqid, $string);
   drupal_json(drupal_map_assoc($matches));
 }
@@ -1358,7 +1361,7 @@ function nodequeue_autocomplete($sqid = NULL, $string = NULL) {
 function _nodequeue_autocomplete($sqid, $string) {
   $output = array();
 
-  if (!$sqid || !is_numeric($sqid) || !$string) {
+  if (!is_numeric($sqid) || !$string) {
     return $output;
   }
 
