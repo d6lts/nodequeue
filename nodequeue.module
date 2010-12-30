@@ -2346,6 +2346,7 @@ function nodequeue_nodequeue_form_submit(&$queue, $form_state) {
  */
 function nodequeue_node_titles($sqid, $title = '', $backward = true, $from = 0, $count = 0, $published_only = TRUE) {
   $orderby = ($backward ? "DESC" : "ASC");
+  $published_sql = '';
   if ($published_only) {
     $published_sql = 'AND n.status = 1';
   }
@@ -2375,6 +2376,7 @@ function nodequeue_view_nodes($sqid, $backward = TRUE, $teaser = TRUE, $links = 
  */
 function nodequeue_load_nodes($sqid, $backward = FALSE, $from = 0, $count = 5, $published_only = TRUE) {
   $orderby = ($backward ? "DESC" : "ASC");
+  $published_sql = '';
   if ($published_only) {
     $published_sql = 'AND n.status = 1';
   }
@@ -2556,7 +2558,7 @@ function nodequeue_api_autocomplete($queue, $subqueue, $string) {
     $where = '(n.status = 1 || n.uid = %d) AND ';
     $where_args = array($user->uid);
   }
-  
+
   $where .= "n.type IN (". db_placeholders($queue->types, 'varchar') .')';
   $where_args = array_merge($where_args, $queue->types);
 
