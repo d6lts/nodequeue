@@ -2571,7 +2571,7 @@ function nodequeue_api_autocomplete($queue, $subqueue, $string) {
   }
   else {
     // Build the constant parts of the query.
-    $where .= " AND LOWER(n.title) LIKE LOWER('%s%%')";
+    $where .= " AND LOWER(n.title) LIKE LOWER('%%%s%%')";
     array_push($where_args, $string);
   }
 
