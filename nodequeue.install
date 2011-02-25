@@ -1,5 +1,4 @@
 <?php
-// $Id$
 
 function nodequeue_schema() {
   $schema['nodequeue_queue'] = array(

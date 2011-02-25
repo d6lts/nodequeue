@@ -1,5 +1,4 @@
 <?php
-// $Id$
 
 function smartqueue_schema() {
   $schema['smartqueue'] = array(
