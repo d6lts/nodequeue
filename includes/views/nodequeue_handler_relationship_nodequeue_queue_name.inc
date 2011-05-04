@@ -61,11 +61,12 @@ class nodequeue_handler_relationship_nodequeue_queue_name extends views_handler_
     }
 
     if (!empty($this->options['limit'])) {
+      $names = array_keys(array_filter($this->options['names']));
       $qids = array();
-      $map  = nodequeue_get_qid_map();
-      foreach($map as $name => $qid) {
-        if (isset($this->options['names'][$name]) ) {
-          $qids[] = $qid;
+      $map = nodequeue_get_qid_map();
+      foreach($names as $name) {
+        if (isset($map[$name])) {
+          $qids[] = $map[$name];
         }
       }
 
