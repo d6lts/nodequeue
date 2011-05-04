@@ -1138,6 +1138,7 @@ function nodequeue_arrange_subqueue_form($form_state, $queue, $nodes, $subqueue)
   $form['add']['nid'] = array(
     '#type' => 'textfield',
     '#autocomplete_path' => 'nodequeue/autocomplete/'. $subqueue->sqid,
+    '#maxlength' => 1024,
     '#default_value' => t('Enter the title of a node to add it to the queue'),
   );
   $form['add']['submit'] = array(
