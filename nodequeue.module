@@ -556,7 +556,12 @@ function nodequeue_node_tab($node) {
  * Display a list of queues and their status for the administrator.
  */
 function nodequeue_view_queues() {
-  $output = theme('advanced_help_topic', 'nodequeue', 'about', 'icon') . '&nbsp;' . theme('advanced_help_topic', 'nodequeue', 'about', t('Click here for information about this module'));
+  $output = '';
+
+  if (module_exists('advanced_help')) {
+    $output .= '<p>' . theme('advanced_help_topic', 'nodequeue', 'about', 'icon') . '&nbsp;' . theme('advanced_help_topic', 'nodequeue', 'about', t('Click here for information about this module')) . '</p>';
+  }
+
   // Fetch all of the queues.
   $queues = nodequeue_load_queues(nodequeue_get_all_qids(25));
   foreach ($queues as $queue) {
