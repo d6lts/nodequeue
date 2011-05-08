@@ -38,7 +38,7 @@ function nodequeue_add_action_form($context) {
     $context['qids'] = '';
   }
 
-  $queues = nodequeue_load_queues(nodequeue_get_all_qids(500, TRUE), TRUE);
+  $queues = nodequeue_load_queues(nodequeue_get_all_qids(0, 0, TRUE), TRUE);
   foreach ($queues as $qid => $queue) {
     $options[$qid] = $queue->title;
   }
@@ -139,7 +139,7 @@ function action_nodequeue_add($op, $edit = array(), $node) {
     case 'form':
       // default values for form
       if (!isset($edit['qids'])) $edit['qids'] = '';
-      $queues = nodequeue_load_queues(nodequeue_get_all_qids(500, TRUE), TRUE);
+      $queues = nodequeue_load_queues(nodequeue_get_all_qids(0, 0, TRUE), TRUE);
       foreach ($queues as $qid => $queue) {
         $options[$qid] = $queue->title;
       }
@@ -182,7 +182,7 @@ function nodequeue_remove_action_form($context) {
     $context['qids'] = array();
   }
 
-  $queues = nodequeue_load_queues(nodequeue_get_all_qids(500, TRUE), TRUE);
+  $queues = nodequeue_load_queues(nodequeue_get_all_qids(0, 0, TRUE), TRUE);
   foreach ($queues as $qid => $queue) {
     $options[$qid] = $queue->title;
   }
@@ -256,7 +256,7 @@ function action_nodequeue_remove($op, $edit = array(), $node) {
       // default values for form
       if (!isset($edit['qids'])) $edit['qids'] = array();
 
-      $queues = nodequeue_load_queues(nodequeue_get_all_qids(500, TRUE), TRUE);
+      $queues = nodequeue_load_queues(nodequeue_get_all_qids(0, 0, TRUE), TRUE);
       foreach ($queues as $qid => $queue) {
         $options[$qid] = $queue->title;
       }

@@ -1703,24 +1703,24 @@ function nodequeue_get_qids($type, $account = NULL, $bypass_cache = FALSE) {
 }
 
 /**
- * Get an array all qids using the pager query. This administrative list
+ * Get an array of qids using the pager query. This administrative list
  * does no permission checking, so should only be available to users who
  * have passed the 'administer queues' check.
  *
  * @param $page_size
- *   The page size to use. If 0 will be all queues.
+ *   The page size to use. If this is 0 or NULL, all queues will be returned.
+ *   Defaults to 0.
  * @param $pager_element
  *   In the rare event this should use another pager element, set this..
- *
- * @return $qids
- *   An array in the format: @code { array($qid => array('qid' => $qid, 'show_in_tab' '
- *    => true/false, 'show_in_links' => true/false }
  * @param $bypass_cache
  *   Boolean value indicating whether to bypass the cache or not.
+ *
+ * @return $qids
+ *   An array in the format: @code { array($qid => $qid) }
  */
-function nodequeue_get_all_qids($page_size = 25, $pager_element = 0, $bypass_cache = FALSE) {
-  static $cache = NULL;
-  if ($bypass_cache || !isset($cache)) {
+function nodequeue_get_all_qids($page_size = 0, $pager_element = 0, $bypass_cache = FALSE) {
+  static $cache = array();
+  if ($bypass_cache || empty($cache[$page_size])) {
     $sql = 'SELECT nq.qid '.
            'FROM {nodequeue_queue} nq '.
            'WHERE nq.show_in_ui = 1 ';
@@ -1736,9 +1736,9 @@ function nodequeue_get_all_qids($page_size = 25, $pager_element = 0, $bypass_cac
     while ($qid = db_fetch_object($result)) {
       $qids[$qid->qid] = $qid->qid;
     }
-    $cache = $qids;
+    $cache[$page_size] = $qids;
   }
-  return $cache;
+  return $cache[$page_size];
 }
 
 /**
