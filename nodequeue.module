@@ -95,6 +95,15 @@ function nodequeue_menu() {
     'page arguments' => array(3),
     'type' => MENU_CALLBACK
   );
+  $items['admin/content/nodequeue/%nodequeue/view'] = array(
+    'title' => 'View',
+    'access arguments' => array(3),
+    'access callback' => 'nodequeue_queue_access',
+    'page callback' => 'nodequeue_admin_view',
+    'page arguments' => array(3),
+    'weight' => -10,
+    'type' => MENU_DEFAULT_LOCAL_TASK
+  );
   $items['admin/content/nodequeue/%nodequeue/view/%subqueue'] = array(
     'title' => 'View',
     'access arguments' => array(3, 5),
@@ -102,7 +111,8 @@ function nodequeue_menu() {
     'page callback' => 'nodequeue_admin_view',
     'page arguments' => array(3, 5),
     'weight' => -10,
-    'type' => MENU_DEFAULT_LOCAL_TASK
+    'tab parent' => 'admin/content/nodequeue/%',
+    'type' => MENU_LOCAL_TASK
   );
   // Actual administrative items.
   $items['admin/content/nodequeue/%nodequeue/edit'] = array(
