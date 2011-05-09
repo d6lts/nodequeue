@@ -40,29 +40,29 @@ function nodequeue_menu() {
   // administrative items
   $items['admin/content/nodequeue'] = array(
     'title' => 'Nodequeue',
-    'access callback' => '_nodequeue_access_admin_or_manipulate',
     'page callback' => 'nodequeue_view_queues',
+    'access callback' => '_nodequeue_access_admin_or_manipulate',
     'description' => 'Create and maintain simple nodequeues.',
     'type' => MENU_NORMAL_ITEM
   );
   $items['admin/content/nodequeue/list'] = array(
     'title' => 'List',
-    'access callback' => '_nodequeue_access_admin_or_manipulate',
     'page callback' => 'nodequeue_view_queues',
+    'access callback' => '_nodequeue_access_admin_or_manipulate',
     'weight' => -1,
     'type' => MENU_DEFAULT_LOCAL_TASK
   );
   $items['admin/content/nodequeue/settings'] = array(
     'title' => 'Settings',
-    'access arguments' => $admin_access,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('nodequeue_admin_settings'),
+    'access arguments' => $admin_access,
     'type' => MENU_LOCAL_TASK
   );
   $items['nodequeue/autocomplete'] = array(
     'title' => 'Autocomplete',
-    'access arguments' => $access,
     'page callback' => 'nodequeue_autocomplete',
+    'access arguments' => $access,
     'type' => MENU_CALLBACK
   );
   $info = nodequeue_api_info();
@@ -70,46 +70,46 @@ function nodequeue_menu() {
     $items['admin/content/nodequeue/add/'. $key] = array(
       'title' => 'Add @type',
       'title arguments' => array('@type' => strtolower($data['title'])),
-      'access arguments' => $admin_access,
       'page callback' => 'drupal_get_form',
       'page arguments' => array('nodequeue_edit_queue_form', $key),
+      'access arguments' => $admin_access,
       'type' => MENU_LOCAL_TASK
     );
   }
   $items['node/%node/nodequeue'] = array(
     'title' => '@tab',
     'title arguments' => array('@tab' => variable_get('nodequeue_tab_name', 'Nodequeue')),
-    'access callback' => 'nodequeue_node_tab_access',
-    'access arguments' => array(1),
     'page callback' => 'nodequeue_node_tab',
     'page arguments' => array(1),
+    'access callback' => 'nodequeue_node_tab_access',
+    'access arguments' => array(1),
     'type' => MENU_LOCAL_TASK,
     'weight' => 5
   );
 
   // Administrative items for an individual queue.
   $items['admin/content/nodequeue/%nodequeue'] = array(
-    'access arguments' => array(3),
-    'access callback' => 'nodequeue_queue_access',
     'page callback' => 'nodequeue_admin_view',
     'page arguments' => array(3),
+    'access callback' => 'nodequeue_queue_access',
+    'access arguments' => array(3),
     'type' => MENU_CALLBACK
   );
   $items['admin/content/nodequeue/%nodequeue/view'] = array(
     'title' => 'View',
-    'access arguments' => array(3),
-    'access callback' => 'nodequeue_queue_access',
     'page callback' => 'nodequeue_admin_view',
     'page arguments' => array(3),
+    'access callback' => 'nodequeue_queue_access',
+    'access arguments' => array(3),
     'weight' => -10,
     'type' => MENU_DEFAULT_LOCAL_TASK
   );
   $items['admin/content/nodequeue/%nodequeue/view/%subqueue'] = array(
     'title' => 'View',
-    'access arguments' => array(3, 5),
-    'access callback' => 'nodequeue_queue_access',
     'page callback' => 'nodequeue_admin_view',
     'page arguments' => array(3, 5),
+    'access callback' => 'nodequeue_queue_access',
+    'access arguments' => array(3, 5),
     'weight' => -10,
     'tab parent' => 'admin/content/nodequeue/%',
     'type' => MENU_LOCAL_TASK
@@ -117,40 +117,39 @@ function nodequeue_menu() {
   // Actual administrative items.
   $items['admin/content/nodequeue/%nodequeue/edit'] = array(
     'title' => 'Edit',
-    'access arguments' => $admin_access,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('nodequeue_edit_queue_form', 3),
+    'access arguments' => $admin_access,
     'type' => MENU_LOCAL_TASK
   );
   $items['admin/content/nodequeue/%nodequeue/delete'] = array(
     'title' => 'Delete',
-    'access arguments' => $admin_access,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('nodequeue_admin_delete', 3),
+    'access arguments' => $admin_access,
     'weight' => 5,
     'type' => MENU_CALLBACK
   );
   $items["admin/content/nodequeue/%nodequeue/add/%subqueue/%node"] = array(
-    'access arguments' => array(6, 3, 5),
-    'access callback' => 'nodequeue_node_and_queue_access',
     'page callback' => 'nodequeue_admin_add_node',
     'page arguments' => array(3, 5, 6),
+    'access callback' => 'nodequeue_node_and_queue_access',
+    'access arguments' => array(6, 3, 5),
     'type' => MENU_CALLBACK
   );
   $items["admin/content/nodequeue/%nodequeue/remove-node/%subqueue/%node"] = array(
-    'access arguments' => array(6, 3, 5),
-    'access callback' => 'nodequeue_node_and_queue_access',
     'page callback' => 'nodequeue_admin_remove_node',
     'page arguments' => array(3, 5, 6),
+    'access callback' => 'nodequeue_node_and_queue_access',
+    'access arguments' => array(6, 3, 5),
     'type' => MENU_CALLBACK
   );
   $items["admin/content/nodequeue/%nodequeue/clear/%subqueue"] = array(
     'title' => 'Clear',
-    'access arguments' => array(3, 5),
-    'access callback' => 'nodequeue_queue_access',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('nodequeue_clear_confirm', 3, 5),
-    'type' => MENU_CALLBACK
+    'access callback' => 'nodequeue_queue_access',
+    'access arguments' => array(3, 5),    'type' => MENU_CALLBACK
   );
 
   return $items;
