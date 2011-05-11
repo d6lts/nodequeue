@@ -681,11 +681,11 @@ function _nodequeue_dragdrop_get_nodes($queue, $subqueue) {
 function nodequeue_arrange_subqueue_form($form_state, $queue, $nodes, $subqueue) {
   $form = array('#tree' => TRUE);
 
-  // save queue and subqueue objects for later use
+  // Save queue and subqueue objects for later use.
   $form['#queue']    = (array) $queue;
   $form['#subqueue'] = (array) $subqueue;
 
-  // prepare the main part of the form which will be themed as a table
+  // Prepare the main part of the form which will be themed as a table.
   $count = count($nodes);
   foreach ($nodes as $node) {
     $form[$node->nid]['#node'] = (array) $node;
@@ -722,9 +722,9 @@ function nodequeue_arrange_subqueue_form($form_state, $queue, $nodes, $subqueue)
     $form[$node->nid]['remove'] = array('#value' => l(t('remove'), '', $attr));
   }
 
-  // add a textfield for adding nodes to the queue
+  // Textfield for adding nodes to the queue.
   $form['add'] = array(
-    '#type'   => 'markup',
+    '#type' => 'markup',
   );
   $form['add']['nid'] = array(
     '#type' => 'textfield',
@@ -734,11 +734,11 @@ function nodequeue_arrange_subqueue_form($form_state, $queue, $nodes, $subqueue)
   );
   $form['add']['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Add node & save queue'),
+    '#value' => t('Add node'),
     '#submit' => array('nodequeue_arrange_subqueue_form_add_submit'),
   );
 
-  // add submit, reverse, shuffle, and clear buttons
+  // Submit, reverse, shuffle, and clear actions.
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Save')
@@ -759,7 +759,8 @@ function nodequeue_arrange_subqueue_form($form_state, $queue, $nodes, $subqueue)
     '#submit' => array('nodequeue_arrange_subqueue_form_clear_submit'),
   );
   $form['#validate'][] = 'nodequeue_arrange_subqueue_form_add_validate';
-  // disable all buttons if the queue is empty
+
+  // Disable all buttons if the queue is empty.
   if ($count == 0) {
     $form['submit']['#disabled']  = TRUE;
     $form['reverse']['#disabled'] = TRUE;
