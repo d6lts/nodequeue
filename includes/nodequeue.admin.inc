@@ -125,7 +125,8 @@ function nodequeue_node_tab($node) {
         t('Add to queue'),
         "admin/content/nodequeue/$queue->qid/add/$subqueue->sqid/$node->nid",
         array('attributes' => array('class' => 'nodequeue-ajax-toggle'),
-          'query' => drupal_get_destination() .'&tab&'. nodequeue_get_token($node->nid))
+          'query' => drupal_get_destination() .'&tab&'. nodequeue_get_token($node->nid),
+          'purl' => array('disabled' => TRUE))
       );
     }
     else {
@@ -133,7 +134,8 @@ function nodequeue_node_tab($node) {
         t('Remove from queue'),
         "admin/content/nodequeue/$queue->qid/remove-node/$subqueue->sqid/$node->nid",
         array('attributes' => array('class' => 'nodequeue-ajax-toggle'),
-          'query' => drupal_get_destination() .'&tab&'. nodequeue_get_token($node->nid))
+          'query' => drupal_get_destination() .'&tab&'. nodequeue_get_token($node->nid),
+          'purl' => array('disabled' => TRUE))
       );
     }
     $row = array();
