@@ -1582,7 +1582,7 @@ function nodequeue_api_autocomplete($queue, $subqueue, $string) {
     return $function($queue, $subqueue, $string, $where, $where_args);
   }
   else {
-    $result = db_query_range(db_rewrite_sql("SELECT n.nid, n.title FROM {node} n WHERE $where"), $where_args, 0, 10);
+    $result = db_query_range(db_rewrite_sql("SELECT n.nid, n.title FROM {node} n WHERE $where"), $where_args, 0, variable_get('nodequeue_autocomplete_limit', 10));
     while ($node = db_fetch_object($result)) {
       $matches[$node->nid] = check_plain($node->title) ." [nid: $node->nid]";
     }
