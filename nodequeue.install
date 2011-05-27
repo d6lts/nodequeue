@@ -450,51 +450,45 @@ function nodequeue_update_6005() {
 function nodequeue_update_6006() {
   $ret = array();
 
-  // Check if one the indices exists before trying to drop them.
-  if (db_index_exists('nodequeue_nodes', 'nodequeue_nodes_sqid_idx')) {
-    // Delete existing indexes
-    $del_indices = array(
-      'nodequeue_roles' => array('qid', 'rid'),
-      'nodequeue_types' => array('qid', 'type'),
-      'nodequeue_subqueue' => array('qid', 'reference', 'title'),
-      'nodequeue_nodes' => array('sqid', 'qid_nid'),
-    );
-    foreach($del_indices as $table => $indices) {
-      foreach($indices as $k => $index) {
-        db_drop_index($ret, $table, $table . "_" . $index . "_idx");
-      }
+  // Delete existing indexes
+  $del_indices = array(
+    'nodequeue_roles' => array('qid', 'rid'),
+    'nodequeue_types' => array('qid', 'type'),
+    'nodequeue_subqueue' => array('qid', 'reference', 'title'),
+    'nodequeue_nodes' => array('sqid', 'qid_nid'),
+  );
+  foreach($del_indices as $table => $indices) {
+    foreach($indices as $k => $index) {
+      db_drop_index($ret, $table, $table . "_" . $index . "_idx");
     }
-    // Naming convention incorrect for this one
-    db_drop_index($ret, "nodequeue_nodes", "nodequeue_subqueue_nid_idx");
   }
+  // Naming convention incorrect for this one
+  db_drop_index($ret, "nodequeue_nodes", "nodequeue_subqueue_nid_idx");
 
-  // Check if the new indices weren't already created.
-  if (!db_index_exists('nodequeue_nodes', 'sqid')) {
-    // Create new indexes
-    $add_indexes = array(
-       'nodequeue_roles' => array(
-         'qid' => array('qid'),
-         'rid' => array('rid'),
-       ),
-       'nodequeue_types' => array(
-         'qid' => array('qid'),
-         'type' => array('type'),
-       ),
-       'nodequeue_subqueue' => array(
-         'qid' => array('qid'),
-         'reference' => array('reference'),
-         'title' => array('title'),
-       ),
-       'nodequeue_nodes' => array(
-         'sqid' => array('sqid', 'position'),
-         'qid_nid' => array('qid', 'nid'),
-         'nid' => array('nid'),
-       ),
-    );
-    foreach($add_indexes as $table => $indices) {
-      foreach($indices as $name => $columns) {
-        db_add_index($ret, $table, $name, $columns);
-      }
+  // Create new indexes
+  $add_indexes = array(
+     'nodequeue_roles' => array(
+       'qid' => array('qid'),
+       'rid' => array('rid'),
+     ),
+     'nodequeue_types' => array(
+       'qid' => array('qid'),
+       'type' => array('type'),
+     ),
+     'nodequeue_subqueue' => array(
+       'qid' => array('qid'),
+       'reference' => array('reference'),
+       'title' => array('title'),
+     ),
+     'nodequeue_nodes' => array(
+       'sqid' => array('sqid', 'position'),
+       'qid_nid' => array('qid', 'nid'),
+       'nid' => array('nid'),
+     ),
+  );
+  foreach($add_indexes as $table => $indices) {
+    foreach($indices as $name => $columns) {
+      db_add_index($ret, $table, $name, $columns);
     }
   }
   return $ret;
