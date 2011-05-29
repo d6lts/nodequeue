@@ -226,20 +226,20 @@ function nodequeue_link($type, $node = NULL, $teaser = FALSE) {
       unset($subqueues[$id]->position);
     }
 
-    if(!module_exists('translation')) {
+    if (!module_exists('translation')) {
       nodequeue_set_subqueue_positions($subqueues, $node->nid);
     }
 
     foreach ($subqueues as $subqueue) {
       $queue = $queues[$subqueue->qid];
       $id = nodequeue_get_content_id($queue, $node);
-      if(module_exists('translation')) {
+      if (module_exists('translation')) {
         $subqueue = array($subqueue->sqid => $subqueue);
         nodequeue_set_subqueue_positions($subqueue, $id);
         $subqueue = array_shift($subqueue);
       }
       $query_string = nodequeue_get_query_string($id, TRUE);
-      $class = 'nodequeue-ajax-toggle nodequeue-toggle-q-'. $queue->qid. ' nodequeue-toggle-sq-'. $subqueue->sqid .' nodequeue-toggle-ref-'. $subqueue->reference;
+      $class = 'nodequeue-ajax-toggle nodequeue-toggle-q-' . $queue->qid . ' nodequeue-toggle-sq-' . $subqueue->sqid . ' nodequeue-toggle-ref-' . $subqueue->reference;
       if (!isset($subqueue->position)) {
         $links[$class] = array(
           'title' => nodequeue_title_substitute($queue->link, $queue, $subqueue),
@@ -249,7 +249,7 @@ function nodequeue_link($type, $node = NULL, $teaser = FALSE) {
           'purl' => array('disabled' => TRUE),
         );
       }
-      else if ($queue->link_remove) {
+      elseif ($queue->link_remove) {
         $links[$class] = array(
           'title' => nodequeue_title_substitute($queue->link_remove, $queue, $subqueue),
           'href' => "admin/content/nodequeue/$queue->qid/remove-node/$subqueue->sqid/$id",
@@ -876,7 +876,7 @@ function nodequeue_load_subqueues_by_reference($references, $bypass_cache = FALS
       $where .= 's.qid = %d AND s.reference IN ('. implode(', ', $key_list) .')';
     }
 
-    $result = db_query("SELECT s.*, COUNT(n.position) AS count FROM {nodequeue_subqueue} s LEFT JOIN {nodequeue_nodes} n ON n.sqid = s.sqid WHERE $where GROUP BY s.sqid", $values);
+    $result = db_query("SELECT s.*, COUNT(n.position) AS count FROM {nodequeue_subqueue} s LEFT JOIN {nodequeue_nodes} n ON n.sqid = s.sqid WHERE " . $where . " GROUP BY s.sqid", $values);
 
     while ($subqueue = db_fetch_object($result)) {
       $cache[$subqueue->qid][$subqueue->reference] = $subqueues[$subqueue->sqid] = $subqueue;
@@ -1087,7 +1087,7 @@ function nodequeue_subqueue_remove($sqid, $start, $end = NULL) {
   db_query("UPDATE {nodequeue_nodes} SET position = position - %d WHERE sqid = %d AND position > %d",  $diff, $sqid, $end);
 
   // Invoke the hook to let other modules know that the nodes were removed.
-  while($node = db_fetch_object($result)) {
+  while ($node = db_fetch_object($result)) {
     module_invoke_all('nodequeue_remove', $sqid, $node->nid);
   }
 }
@@ -1263,7 +1263,7 @@ function nodequeue_subqueue_size_text($max, $count, $long = TRUE) {
   if (empty($count)) {
     $message = theme('nodequeue_subqueue_empty_text');
   }
-  else if ($count == $max) {
+  elseif ($count == $max) {
     $message = theme('nodequeue_subqueue_full_text');
   }
   else {
@@ -1353,13 +1353,13 @@ function nodequeue_nodequeue_form_submit(&$queue, $form_state) {
 /**
  * in general it's preferable to use Views for this functionality.
  */
-function nodequeue_node_titles($sqid, $title = '', $backward = true, $from = 0, $count = 0, $published_only = TRUE) {
+function nodequeue_node_titles($sqid, $title = '', $backward = TRUE, $from = 0, $count = 0, $published_only = TRUE) {
   $orderby = ($backward ? "DESC" : "ASC");
   $published_sql = '';
   if ($published_only) {
     $published_sql = 'AND n.status = 1';
   }
-  $sql = db_rewrite_sql("SELECT n.nid, n.title FROM {node} n LEFT JOIN {nodequeue_nodes} nn ON n.nid = nn.nid WHERE nn.sqid = %d $published_sql ORDER BY nn.position $orderby");
+  $sql = db_rewrite_sql("SELECT n.nid, n.title FROM {node} n LEFT JOIN {nodequeue_nodes} nn ON n.nid = nn.nid WHERE nn.sqid = %d " . $published_sql . " ORDER BY nn.position " . $orderby);
   if ($count) {
     $result = db_query_range($sql, $sqid, $from, $count);
   }
@@ -1389,7 +1389,7 @@ function nodequeue_load_nodes($sqid, $backward = FALSE, $from = 0, $count = 5, $
   if ($published_only) {
     $published_sql = 'AND n.status = 1';
   }
-  $sql = db_rewrite_sql("SELECT n.nid FROM {node} n INNER JOIN {nodequeue_nodes} nn ON n.nid = nn.nid WHERE nn.sqid = %d $published_sql ORDER BY nn.position $orderby");
+  $sql = db_rewrite_sql("SELECT n.nid FROM {node} n INNER JOIN {nodequeue_nodes} nn ON n.nid = nn.nid WHERE nn.sqid = %d " . $published_sql . " ORDER BY nn.position " . $orderby);
   if ($count) {
     $result = db_query_range($sql, $sqid, $from, $count);
   }
@@ -1595,7 +1595,7 @@ function nodequeue_api_autocomplete($queue, $subqueue, $string) {
     return $function($queue, $subqueue, $string, $where, $where_args);
   }
   else {
-    $result = db_query_range(db_rewrite_sql("SELECT n.nid, n.title FROM {node} n WHERE $where"), $where_args, 0, variable_get('nodequeue_autocomplete_limit', 10));
+    $result = db_query_range(db_rewrite_sql("SELECT n.nid, n.title FROM {node} n WHERE " . $where), $where_args, 0, variable_get('nodequeue_autocomplete_limit', 10));
     while ($node = db_fetch_object($result)) {
       $matches[$node->nid] = check_plain($node->title) ." [nid: $node->nid]";
     }
@@ -1833,7 +1833,7 @@ function nodequeue_nids_visible($sqid = -1, $account = NULL) {
     $node_status_sql = ' AND (n.status = 1 || n.uid = %d)';
   }
 
-  $query_restricted = db_query(db_rewrite_sql("SELECT DISTINCT(n.nid) FROM {node} n LEFT JOIN {nodequeue_nodes} nq ON nq.nid = n.nid WHERE nq.sqid = %d $node_status_sql ORDER BY nq.position ASC"), $sqid, $account->uid);
+  $query_restricted = db_query(db_rewrite_sql("SELECT DISTINCT(n.nid) FROM {node} n LEFT JOIN {nodequeue_nodes} nq ON nq.nid = n.nid WHERE nq.sqid = %d " . $node_status_sql . " ORDER BY nq.position ASC"), $sqid, $account->uid);
   while ($result_restricted = db_fetch_object($query_restricted)) {
     $nids_visible[$result_restricted->nid] = $result_restricted->nid;
   }
@@ -1854,7 +1854,7 @@ function nodequeue_machine_name_available($machine_name, $qid = NULL) {
     // Creating a new machine name queue
     return TRUE;
   }
-  else if (count($existing_queues) == 1 && !empty($qid) && $qid == $existing_queues[0]) {
+  elseif (count($existing_queues) == 1 && !empty($qid) && $qid == $existing_queues[0]) {
     // Checking an existing queue that has not changed its name.
     return TRUE;
   }

@@ -56,7 +56,7 @@ function nodequeue_add_action_form($context) {
     );
   }
   else {
-    drupal_set_message(t('Please <a href="!url">create</a> a nodequeue first.', array('!url' => url('admin/content/nodequeue'))));
+    drupal_set_message(t('Please <a href="@url">create</a> a nodequeue first.', array('@url' => url('admin/content/nodequeue'))));
   }
   return $form;
 }
@@ -101,13 +101,13 @@ function nodequeue_add_action($node, $context) {
  * Old-style action to add a node to a queue.
  */
 function action_nodequeue_add($op, $edit = array(), $node) {
-  switch($op) {
+  switch ($op) {
     case 'metadata':
       return array(
         'description' => t('Add to Nodequeues'),
         'type' => t('node'),
-        'batchable' => true,
-        'configurable' => true,
+        'batchable' => TRUE,
+        'configurable' => TRUE,
       );
       break;
 
@@ -157,7 +157,7 @@ function action_nodequeue_add($op, $edit = array(), $node) {
           );
       }
       else {
-        drupal_set_message(t('Please <a href="!url">create</a> a nodequeue first.', array('!url' => url('admin/content/nodequeue'))));
+        drupal_set_message(t('Please <a href="@url">create</a> a nodequeue first.', array('@url' => url('admin/content/nodequeue'))));
       }
       return $form;
 
@@ -227,13 +227,13 @@ function nodequeue_remove_action($node, $context) {
  * Old-style action to remove a node from a queue.
  */
 function action_nodequeue_remove($op, $edit = array(), $node) {
-  switch($op) {
+  switch ($op) {
     case 'metadata':
       return array(
         'description' => t('Remove from Nodequeues'),
         'type' => t('node'),
-        'batchable' => true,
-        'configurable' => true,
+        'batchable' => TRUE,
+        'configurable' => TRUE,
       );
       break;
 

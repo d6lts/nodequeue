@@ -222,7 +222,7 @@ function smartqueue_taxonomy_get_terms($vid) {
 function smartqueue_taxonomy($op, $type, $array = NULL) {
   switch ($type) {
     case 'term':
-      switch ($op){
+      switch ($op) {
         // If a term was updated, we need to update any relevant nodequeue titles.
         case 'update':
           $tid = $array['tid'];

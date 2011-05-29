@@ -29,7 +29,7 @@ function nodequeue_admin_settings() {
   $form['nodequeue_autocomplete_limit'] = array(
     '#type' => 'textfield',
     '#title' => t('Nodequeue autocomplete limit'),
-    '#size'=> 2,
+    '#size' => 2,
     '#default_value' => variable_get('nodequeue_autocomplete_limit', 10),
     '#description' => t('Number of node titles to show in the autocomplete search results.'),
   );
@@ -345,7 +345,7 @@ function nodequeue_edit_queue_form(&$form_state, $queue) {
     // If the $queue is a string - name of a queue type, basically - then we test that it's a valid queue type.
     $queue = strtolower($queue);
     if (!isset($info[$queue])) {
-      return false;
+      return FALSE;
     }
     drupal_set_title(t('Add @type', array('@type' => strtolower($info[$queue]['title']))));
     $queue = new nodequeue_queue($queue);
@@ -356,8 +356,8 @@ function nodequeue_edit_queue_form(&$form_state, $queue) {
 
   $form['description'] = array(
     '#type' => 'fieldset',
-    '#title' => $info[$queue->owner]['title'],
-    '#description' => $info[$queue->owner]['description'],
+    '#title' => filter_xss($info[$queue->owner]['title']),
+    '#description' => filter_xss($info[$queue->owner]['description']),
   );
 
   $form['title'] = array(
@@ -447,7 +447,7 @@ function nodequeue_edit_queue_form(&$form_state, $queue) {
     foreach ($roles as $rid => $role) {
       $form['roles'][$rid] = array(
         '#type' => 'checkbox',
-        '#title' => $role,
+        '#title' => filter_xss($role),
         '#default_value' => (isset($manipulate_all_queues[$rid]) || in_array($rid, $queue->roles)) ? TRUE : FALSE,
         '#disabled' => (isset($manipulate_all_queues[$rid])) ? TRUE : FALSE,
       );
@@ -668,7 +668,7 @@ function nodequeue_admin_view($queue, $subqueue = array()) {
       return nodequeue_view_subqueues($queue);
     }
   }
-  else if ($subqueue->sqid) {
+  elseif ($subqueue->sqid) {
    if (!nodequeue_api_subqueue_access($subqueue, NULL, $queue)) {
       return drupal_not_found();
     }
@@ -698,7 +698,7 @@ function nodequeue_arrange_subqueue($queue, $subqueue = NULL) {
       return drupal_not_found();
     }
   }
-  else if ($subqueue->sqid) {
+  elseif ($subqueue->sqid) {
     if (!nodequeue_api_subqueue_access($subqueue, NULL, $queue)) {
       return drupal_not_found();
     }
@@ -905,7 +905,7 @@ function nodequeue_arrange_subqueue_form_submit($form, &$form_state, $reverse = 
   $sqid = $form['#subqueue']['sqid'];
   nodequeue_save_subqueue_order($nodes, $qid, $sqid);
 
-  drupal_set_message($message);
+  drupal_set_message(check_plain($message));
 }
 
 /**
@@ -941,7 +941,7 @@ function nodequeue_save_subqueue_order($nodes, $qid, $sqid) {
       $clean[$count] = $node;
       $count++;
     }
-    else if ($pos == 'r') {
+    elseif ($pos == 'r') {
       // call nodequeue_remove hook
       module_invoke_all('nodequeue_remove', $sqid, $node['nid']);
     }
