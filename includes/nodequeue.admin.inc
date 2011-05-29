@@ -696,7 +696,7 @@ function nodequeue_arrange_subqueue($queue, $subqueue = NULL) {
   // get nodes from the queue
   $nodes = _nodequeue_dragdrop_get_nodes($queue, $subqueue);
 
-  return drupal_get_form('nodequeue_arrange_subqueue_form', $queue, $nodes, $subqueue);
+  return drupal_get_form('nodequeue_arrange_subqueue_form_' . $subqueue->sqid, $queue, $nodes, $subqueue);
 }
 
 /**
@@ -724,6 +724,9 @@ function _nodequeue_dragdrop_get_nodes($queue, $subqueue) {
  */
 function nodequeue_arrange_subqueue_form($form_state, $queue, $nodes, $subqueue) {
   $form = array('#tree' => TRUE);
+
+  // Prepare the main part of the form which will be themed as a table.
+  $form['#theme'] = 'nodequeue_arrange_subqueue_form';
 
   // Save queue and subqueue objects for later use.
   $form['#queue']    = (array) $queue;
@@ -775,6 +778,7 @@ function nodequeue_arrange_subqueue_form($form_state, $queue, $nodes, $subqueue)
     '#autocomplete_path' => 'nodequeue/autocomplete/'. $subqueue->sqid,
     '#maxlength' => 1024,
     '#default_value' => t('Enter the title of a node to add it to the queue'),
+    '#attributes' => array('class' => 'subqueue-add-nid'),
   );
   $form['add']['submit'] = array(
     '#type' => 'submit',
@@ -785,7 +789,8 @@ function nodequeue_arrange_subqueue_form($form_state, $queue, $nodes, $subqueue)
   // Submit, reverse, shuffle, and clear actions.
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Save')
+    '#value' => t('Save'),
+    '#submit' => array('nodequeue_arrange_subqueue_form_submit'),
   );
   $form['reverse'] = array(
     '#type' => 'submit',
