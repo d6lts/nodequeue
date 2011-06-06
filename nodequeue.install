@@ -230,6 +230,32 @@ function nodequeue_schema() {
   return $schema;
 }
 
+/**
+ * Implementation of hook_install().
+ */
+function nodequeue_install() {
+  drupal_install_schema('nodequeue');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function nodequeue_uninstall() {
+  drupal_uninstall_schema('nodequeue');
+
+  // Remove our variables.
+  $variables = array(
+    'nodequeue_use_tab',
+    'nodequeue_tab_display_max',
+    'nodequeue_tab_name',
+    'nodequeue_autocomplete_limit',
+    'nodequeue_view_per_queue',
+  );
+  foreach ($variables as $variable) {
+    variable_del($variable);
+  }
+}
+
 // TODO: Figure out what to fix here?
 function nodequeue_update_1() {
   if ($GLOBALS['db_type'] == 'pgsql') {
@@ -534,18 +560,4 @@ function nodequeue_update_6007() {
 
   return $ret;
 
-}
-
-/**
- * Implementation of hook_install().
- */
-function nodequeue_install() {
-  drupal_install_schema('nodequeue');
-}
-
-/**
- * Implementation of hook_uninstall().
- */
-function nodequeue_uninstall() {
-  drupal_uninstall_schema('nodequeue');
 }
