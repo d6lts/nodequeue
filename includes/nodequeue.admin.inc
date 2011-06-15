@@ -719,12 +719,14 @@ function _nodequeue_dragdrop_get_nodes($queue, $subqueue) {
 
   $visible = nodequeue_nids_visible($subqueue->sqid);
 
-  // get a list of all nodes in the subqueue, regardless of access restrictions
-  $result = db_query('SELECT DISTINCT(n.nid), n.title, n.uid, u.name, n.created, nq.position FROM {node} n LEFT JOIN {users} u on n.uid = u.uid LEFT JOIN {nodequeue_nodes} nq ON nq.nid = n.nid WHERE nq.sqid = %d ORDER BY nq.position '. $order, $subqueue->sqid);
+  // Get a list of all nodes in the subqueue, regardless of access restrictions.
+  $result = db_query('SELECT DISTINCT(n.nid), nq.position FROM {node} n LEFT JOIN {nodequeue_nodes} nq ON nq.nid = n.nid WHERE nq.sqid = %d ORDER BY nq.position '. $order, $subqueue->sqid);
 
   $nodes = array();
-  while ($node = db_fetch_object($result)) {
-    $node->visible = isset($visible[$node->nid]) ? TRUE : FALSE;
+  while ($sq_node = db_fetch_object($result)) {
+    $node = node_load($sq_node->nid);
+    $node->visible = isset($visible[$sq_node->nid]) ? TRUE : FALSE;
+    $node->position = $sq_node->position;
     $nodes[] = $node;
   }
 
@@ -760,7 +762,9 @@ function nodequeue_arrange_subqueue_form($form_state, $queue, $nodes, $subqueue)
       $form[$node->nid]['date'] = array('#value' => '');
     }
 
-    $form[$node->nid]['edit'] = array('#value' => l(t('edit'), 'node/'. $node->nid .'/edit', array('attributes' => array('title' => t('Edit this node')), 'query' => drupal_get_destination())));
+    if (node_access('update', $node)) {
+      $form[$node->nid]['edit'] = array('#value' => l(t('edit'), 'node/'. $node->nid .'/edit', array('attributes' => array('title' => t('Edit this node')), 'query' => drupal_get_destination())));
+    }
     $form[$node->nid]['position'] = array(
       '#type' => 'position',
       '#delta' => $count,
