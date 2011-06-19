@@ -274,6 +274,28 @@ function smartqueue_taxonomy($op, $type, $array = NULL) {
 }
 
 /**
+ * Implementation of hook_nodequeue_autocomplete().
+ */
+function smartqueue_taxonomy_nodequeue_autocomplete($queue, $subqueue, $string, $where, $where_args) {
+  $matches = array();
+  $result = taxonomy_select_nodes(array($subqueue->reference), 'or', 'all', TRUE);
+
+  $nids = array();
+  while ($node = db_fetch_object($result)) {
+    $nids[] = $node->nid;
+  }
+
+  if (!empty($nids)) {
+    $result = db_query_range(db_rewrite_sql("SELECT n.nid, n.title FROM {node} n WHERE n.nid IN (" . implode(',', $nids) . ") AND " . $where), $where_args, 0, variable_get('nodequeue_autocomplete_limit', 10));
+    while ($node = db_fetch_object($result)) {
+      $matches[$node->nid] = check_plain($node->title) . " [nid: $node->nid]";
+    }
+  }
+
+  return $matches;
+}
+
+/**
  * Get the top-level parents of the given taxonomy terms.
  *
  * @param $tids, an array of taxonomy IDs
