@@ -162,21 +162,27 @@ function nodequeue_node_tab($node) {
   $rows = array();
   foreach ($subqueues as $subqueue) {
     $queue = $queues[$subqueue->qid];
+    $id = nodequeue_get_content_id($queue, $node);
+    if (module_exists('translation')) {
+      $subqueue = array($subqueue->sqid => $subqueue);
+      nodequeue_set_subqueue_positions($subqueue, $id);
+      $subqueue = array_shift($subqueue);
+    }
     if (empty($subqueue->position)) {
       $op = l(
         t('Add to queue'),
-        "admin/content/nodequeue/$queue->qid/add/$subqueue->sqid/$node->nid",
+        "admin/content/nodequeue/$queue->qid/add/$subqueue->sqid/$id",
         array('attributes' => array('class' => 'nodequeue-ajax-toggle'),
-          'query' => drupal_get_destination() .'&tab&'. nodequeue_get_token($node->nid),
+          'query' => drupal_get_destination() .'&tab&'. nodequeue_get_token($id),
           'purl' => array('disabled' => TRUE))
       );
     }
     else {
       $op = l(
         t('Remove from queue'),
-        "admin/content/nodequeue/$queue->qid/remove-node/$subqueue->sqid/$node->nid",
+        "admin/content/nodequeue/$queue->qid/remove-node/$subqueue->sqid/$id",
         array('attributes' => array('class' => 'nodequeue-ajax-toggle'),
-          'query' => drupal_get_destination() .'&tab&'. nodequeue_get_token($node->nid),
+          'query' => drupal_get_destination() .'&tab&'. nodequeue_get_token($id),
           'purl' => array('disabled' => TRUE))
       );
     }
