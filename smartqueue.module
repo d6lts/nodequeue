@@ -40,9 +40,16 @@ function smartqueue_taxonomy_nodequeue_form($queue, &$form) {
     '#description' => t('What to display for the subqueue title; use %subqueue to embed the actual subqueue title. This is used to distinguish multiple nodequeues with subqueues from each other, as internal subqueue title is filled automatically.'),
   );
 
-  if ($queue->qid) {
+  if (!empty($queue->qid)) {
+    // Lock the vocabulary selection.
     $form['placeholder']['vocabularies']['#disabled'] = TRUE;
     $form['placeholder']['vocabularies']['#default_value'] = explode('-', $queue->reference);
+
+    // Only show node types that are available for this queue.
+    if (!empty($queue->reference)) {
+      $node_types = _smartqueue_taxonomy_get_node_types($queue);
+      $form['types']['#options'] = $node_types;
+    }
   }
 }
 
@@ -326,4 +333,20 @@ function smartqueue_taxonomy_get_parents($tids) {
   else {
     return array();
   }
+}
+
+/**
+ * Returns the available node types for a taxonomy smartqueue.
+ */
+function _smartqueue_taxonomy_get_node_types($queue) {
+  $node_types = array();
+  $vocabularies = explode('-', $queue->reference);
+  $placeholders = db_placeholders($vocabularies);
+  $result = db_query(db_rewrite_sql("SELECT DISTINCT(vnt.type), nt.name FROM {vocabulary_node_types} vnt LEFT JOIN {node_type} nt ON vnt.type = nt.type WHERE vnt.vid IN ($placeholders)"), $vocabularies);
+
+  while ($node_type = db_fetch_object($result)) {
+    $node_types[$node_type->type] = $node_type->name;
+  }
+
+  return $node_types;
 }
