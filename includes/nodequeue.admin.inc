@@ -287,12 +287,18 @@ function nodequeue_view_queues() {
 
   $rows = array();
   foreach ($queues as $queue) {
+    $operations = array();
     $sub_text = $queue->subqueues;
+
+    // If this queue has only one subqueue.
     if ($sub_text == 1) {
-      $sub_text .= " (". nodequeue_subqueue_size_text($queue->size, $queue->subqueue->count) .")";
+      $sub_text .= " (" . nodequeue_subqueue_size_text($queue->size, $queue->subqueue->count) . ")";
+      $operations[] = l(t('View'), "admin/content/nodequeue/$queue->qid/view/" . $queue->subqueue->sqid);
+    }
+    else {
+      $operations[] = l(t('View'), "admin/content/nodequeue/$queue->qid/view");
     }
 
-    $operations = array(l(t('View'), "admin/content/nodequeue/$queue->qid/view"));
     if (user_access('administer nodequeue')) {
       $operations[] = l(t('Edit'), "admin/content/nodequeue/$queue->qid/edit");
       $operations[] = l(t('Delete'), "admin/content/nodequeue/$queue->qid/delete");
