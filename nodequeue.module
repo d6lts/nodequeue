@@ -1170,7 +1170,7 @@ function nodequeue_queue_swap($subqueue, $pos1, $pos2) {
   db_query("UPDATE {nodequeue_nodes} SET position = %d WHERE nid = %d AND sqid = %d", $pos2, $nid, $subqueue->sqid);
 
   // notify other modules of the swap
-  module_invoke_all('nodequeue_swap', $sqid, $nid);
+  module_invoke_all('nodequeue_swap', $subqueue->sqid, $nid);
 
 }
 
