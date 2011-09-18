@@ -1848,10 +1848,20 @@ function nodequeue_nids_visible($sqid = -1, $account = NULL) {
     $node_status_sql = ' AND (n.status = 1 || n.uid = %d)';
   }
 
+  // Disable language selection temporarily, enable it again later.
+  if (module_exists('i18n') && arg(0) == 'admin') {
+    i18n_selection_mode('off');
+  }
+
   $query_restricted = db_query(db_rewrite_sql("SELECT DISTINCT(n.nid) FROM {node} n LEFT JOIN {nodequeue_nodes} nq ON nq.nid = n.nid WHERE nq.sqid = %d " . $node_status_sql . " ORDER BY nq.position ASC"), $sqid, $account->uid);
   while ($result_restricted = db_fetch_object($query_restricted)) {
     $nids_visible[$result_restricted->nid] = $result_restricted->nid;
   }
+
+  if (module_exists('i18n') && arg(0) == 'admin') {
+    i18n_selection_mode('resest');
+  }
+
   return $nids_visible;
 }
 
