@@ -1861,7 +1861,7 @@ function nodequeue_nids_visible($sqid = -1, $account = NULL) {
   }
 
   if (module_exists('i18n') && arg(0) == 'admin') {
-    i18n_selection_mode('resest');
+    i18n_selection_mode('reset');
   }
 
   return $nids_visible;
