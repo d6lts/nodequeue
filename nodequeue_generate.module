@@ -89,6 +89,18 @@ function theme_nodequeue_generate_form($form) {
   return $output;
 }
 
+/**
+ * Validate nodequeue generate form submission.
+ *
+ * Make sure that at least one queue was selected.
+ */
+function nodequeue_generate_form_validate($form, &$form_state) {
+  $qids = array_keys(array_filter($form_state['values']['rows']['cb']));
+  if (count($qids) < 1) {
+    form_set_error('nodequeues', t('You must select a Queue.'));
+  }
+}
+
 function nodequeue_generate_form_submit($form, &$form_state) {
   $qids = array_keys(array_filter($form_state['values']['rows']['cb']));
   // Empty the queue
