@@ -293,7 +293,16 @@ function smartqueue_taxonomy_nodequeue_autocomplete($queue, $subqueue, $string, 
   }
 
   if (!empty($nids)) {
+    // Disable language selection temporarily, enable it again later.
+    if (module_exists('i18n')) {
+      i18n_selection_mode('off');
+    }
+
     $result = db_query_range(db_rewrite_sql("SELECT n.nid, n.title, n.tnid FROM {node} n WHERE n.nid IN (" . implode(',', $nids) . ") AND " . $where), $where_args, 0, variable_get('nodequeue_autocomplete_limit', 10));
+
+    if (module_exists('i18n')) {
+      i18n_selection_mode('reset');
+    }
 
     while ($node = db_fetch_object($result)) {
       $id = nodequeue_get_content_id($queue, $node);
