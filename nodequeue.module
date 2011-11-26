@@ -24,9 +24,7 @@ function nodequeue_perm() {
  */
 function nodequeue_menu() {
   $items = array();
-
   $admin_access = array('administer nodequeue');
-  $access = array('manipulate queues');
 
   // administrative items
   $items['admin/content/nodequeue'] = array(
@@ -56,7 +54,7 @@ function nodequeue_menu() {
   $items['nodequeue/autocomplete'] = array(
     'title' => 'Autocomplete',
     'page callback' => 'nodequeue_autocomplete',
-    'access arguments' => $access,
+    'access callback' => '_nodequeue_access_admin_or_manipulate',
     'file' => 'includes/nodequeue.admin.inc',
     'type' => MENU_CALLBACK
   );
@@ -1733,7 +1731,7 @@ function nodequeue_check_token($seed) {
  * @return boolean
  */
 function _nodequeue_access_admin_or_manipulate() {
-  return user_access('administer nodequeue') || user_access('manipulate queues');
+  return user_access('administer nodequeue') || user_access('manipulate queues') || user_access('manipulate all queues');
 }
 
 /**
