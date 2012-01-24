@@ -87,8 +87,7 @@ function smartqueue_update_6003() {
  * Clean-up leftovers from the {smartqueue} table.
  */
 function smartqueue_update_6004() {
-  $ret = array();
-  $ret[] = db_query('DELETE FROM {smartqueue} WHERE `qid` NOT IN (SELECT qid FROM {nodequeue_queue})');
+  db_query('DELETE FROM {smartqueue} WHERE `qid` NOT IN (SELECT qid FROM {nodequeue_queue})');
 
-  return $ret;
+  return array();
 }
