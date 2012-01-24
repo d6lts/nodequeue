@@ -682,7 +682,7 @@ function nodequeue_load_queues($qids = array(), $bypass_cache = FALSE) {
 
   if (!empty($to_load)) {
     $placeholders = db_placeholders($to_load, 'int');
-    $result = db_query("SELECT q.*, COUNT(s.sqid) AS subqueues FROM {nodequeue_queue} q LEFT JOIN {nodequeue_subqueue} s ON q.qid = s.qid WHERE q.qid IN ($placeholders) GROUP BY q.qid", $to_load);
+    $result = db_query("SELECT q.*, (SELECT count(*) FROM {nodequeue_subqueue} s WHERE q.qid = s.qid) AS subqueues FROM {nodequeue_queue} q WHERE q.qid IN ($placeholders)", $to_load);
     while ($queue = db_fetch_object($result)) {
       $loaded[$queue->qid] = $queue;
       // ensure valid defaults:
@@ -769,7 +769,7 @@ function nodequeue_load_subqueues($sqids, $bypass_cache = FALSE) {
   if (!empty($to_load)) {
     $placeholders = db_placeholders($to_load, 'int');
 
-    $result = db_query("SELECT s.*, COUNT(n.position) AS count FROM {nodequeue_subqueue} s LEFT JOIN {nodequeue_nodes} n ON n.sqid = s.sqid WHERE s.sqid IN ($placeholders) GROUP BY s.sqid", $to_load);
+    $result = db_query("SELECT s.*, (SELECT count(*) FROM {nodequeue_nodes} n WHERE n.sqid = s.sqid) AS count FROM {nodequeue_subqueue} s WHERE s.sqid IN ($placeholders)", $to_load);
     while ($obj = db_fetch_object($result)) {
       // Sometimes we want to get to subqueues by reference, sometimes by sqid.
       // sqid is always unique, but reference is sometimes more readily available.
@@ -822,7 +822,7 @@ function nodequeue_load_subqueues_by_queue($qids, $page_size = 0) {
     return array();
   }
 
-  $query = "SELECT s.*, COUNT(n.position) AS count FROM {nodequeue_subqueue} s LEFT JOIN {nodequeue_nodes} n ON n.sqid = s.sqid WHERE s.qid IN (". db_placeholders($qids, 'int') .") GROUP BY s.sqid";
+  $query = "SELECT s.*, (SELECT count(*) FROM {nodequeue_nodes} n WHERE n.sqid = s.sqid) AS count FROM {nodequeue_subqueue} s WHERE s.qid IN (". db_placeholders($qids, 'int') .")";
   if ($page_size) {
     $result = pager_query($query, $page_size, 0, $qids);
   }
@@ -889,7 +889,7 @@ function nodequeue_load_subqueues_by_reference($references, $bypass_cache = FALS
       $where .= 's.qid = %d AND s.reference IN ('. implode(', ', $key_list) .')';
     }
 
-    $result = db_query("SELECT s.*, COUNT(n.position) AS count FROM {nodequeue_subqueue} s LEFT JOIN {nodequeue_nodes} n ON n.sqid = s.sqid WHERE " . $where . " GROUP BY s.sqid", $values);
+    $result = db_query("SELECT s.*, (SELECT count(*) FROM {nodequeue_nodes} n WHERE n.sqid = s.sqid) AS count FROM {nodequeue_subqueue} s WHERE " . $where, $values);
 
     while ($subqueue = db_fetch_object($result)) {
       $cache[$subqueue->qid][$subqueue->reference] = $subqueues[$subqueue->sqid] = $subqueue;
@@ -1039,7 +1039,7 @@ function nodequeue_remove_subqueue($sqid) {
  */
 function nodequeue_subqueue_add($queue, &$subqueue, $nid) {
   if (!empty($nid)) {
-    db_query("INSERT INTO {nodequeue_nodes} (sqid, qid, nid, position, timestamp) VALUES (%d, %d, %d, IFNULL((SELECT MAX(position)+1 FROM (SELECT * from {nodequeue_nodes} WHERE sqid = %d) as nn), 1), %d)", $subqueue->sqid, $queue->qid, $nid, $subqueue->sqid, time());
+    db_query("INSERT INTO {nodequeue_nodes} (sqid, qid, nid, position, timestamp) VALUES (%d, %d, %d, COALESCE((SELECT MAX(position)+1 FROM (SELECT * from {nodequeue_nodes} WHERE sqid = %d) as nn), 1), %d)", $subqueue->sqid, $queue->qid, $nid, $subqueue->sqid, time());
     $subqueue->count = db_result(db_query("SELECT count(nid) FROM {nodequeue_nodes} WHERE sqid = %d", $subqueue->sqid));
     // If adding this would make the queue too big, pop the front node
     // (or nodes) out.
@@ -1865,7 +1865,7 @@ function nodequeue_nids_visible($sqid = -1, $account = NULL) {
     i18n_selection_mode('off');
   }
 
-  $query_restricted = db_query(db_rewrite_sql("SELECT DISTINCT(n.nid) FROM {node} n LEFT JOIN {nodequeue_nodes} nq ON nq.nid = n.nid WHERE nq.sqid = %d " . $node_status_sql . " ORDER BY nq.position ASC"), $sqid, $account->uid);
+  $query_restricted = db_query(db_rewrite_sql("SELECT DISTINCT(n.nid), nq.position FROM {node} n LEFT JOIN {nodequeue_nodes} nq ON nq.nid = n.nid WHERE nq.sqid = %d " . $node_status_sql . " ORDER BY nq.position ASC"), $sqid, $account->uid);
   while ($result_restricted = db_fetch_object($query_restricted)) {
     $nids_visible[$result_restricted->nid] = $result_restricted->nid;
   }
