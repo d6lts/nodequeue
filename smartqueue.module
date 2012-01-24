@@ -293,29 +293,36 @@ function smartqueue_taxonomy($op, $type, $array = NULL) {
  */
 function smartqueue_taxonomy_nodequeue_autocomplete($queue, $subqueue, $string, $where, $where_args) {
   $matches = array();
-  $result = taxonomy_select_nodes(array($subqueue->reference), 'or', 'all', TRUE);
 
-  $nids = array();
-  while ($node = db_fetch_object($result)) {
-    $nids[] = $node->nid;
+  // Get any descendant term IDs.
+  // @see taxonomy_select_nodes().
+  $tid = $subqueue->reference;
+  $term = taxonomy_get_term($tid);
+  $tree = taxonomy_get_tree($term->vid, $tid, -1, NULL);
+  $tids = array_merge(array($tid), array_map('_taxonomy_get_tid_from_term', $tree));
+  $placeholders = db_placeholders($tids, 'int');
+
+  // Prepend taxonomy term tids onto where_args array ready for db_query.
+  foreach ($tids as $tid) {
+    array_unshift($where_args, $tid);
   }
 
-  if (!empty($nids)) {
-    // Disable language selection temporarily, enable it again later.
-    if (module_exists('i18n')) {
-      i18n_selection_mode('off');
-    }
+  // Disable language selection temporarily, enable it again later.
+  if (module_exists('i18n')) {
+    i18n_selection_mode('off');
+  }
 
-    $result = db_query_range(db_rewrite_sql("SELECT n.nid, n.title, n.tnid FROM {node} n WHERE n.nid IN (" . implode(',', $nids) . ") AND " . $where), $where_args, 0, variable_get('nodequeue_autocomplete_limit', 10));
+  $result = db_query_range(db_rewrite_sql("SELECT n.nid, n.title, n.tnid FROM {node} n
+    INNER JOIN {term_node} tn ON n.vid = tn.vid WHERE tn.tid IN ($placeholders) AND " . $where),
+    $where_args, 0, variable_get('nodequeue_autocomplete_limit', 10));
 
-    if (module_exists('i18n')) {
-      i18n_selection_mode('reset');
-    }
+  if (module_exists('i18n')) {
+    i18n_selection_mode('reset');
+  }
 
-    while ($node = db_fetch_object($result)) {
-      $id = nodequeue_get_content_id($queue, $node);
-      $matches[$id] = check_plain($node->title) . " [nid: $id]";
-    }
+  while ($node = db_fetch_object($result)) {
+    $id = nodequeue_get_content_id($queue, $node);
+    $matches[$id] = check_plain($node->title) . " [nid: $id]";
   }
 
   return $matches;
