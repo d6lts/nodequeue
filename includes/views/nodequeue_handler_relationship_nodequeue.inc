@@ -49,7 +49,7 @@ class nodequeue_handler_relationship_nodequeue extends views_handler_relationshi
   /**
    * Called to implement a relationship in a query.
    */
-  function query() {
+  function query($group_by = FALSE) {
     // Figure out what base table this relationship brings to the party.
     $join = new views_join();
     $join->definition = array(
