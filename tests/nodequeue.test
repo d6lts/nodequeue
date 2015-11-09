@@ -100,7 +100,7 @@ class NodequeueWebTestCase extends DrupalWebTestCase {
 
     $subqueue = array_shift($subqueues);
     foreach ($nodes as $node) {
-      nodequeue_subqueue_add($queue, &$subqueue, $node->nid);
+      nodequeue_subqueue_add($queue, $subqueue, $node->nid);
     }
     $this->assertTrue($subqueue->count == $count, t('Subqueue contains %count nodes.', array('%count' => $count)), t('Nodequeue'));
 
@@ -409,8 +409,8 @@ class NodequeueAdministerTestCase extends NodequeueWebTestCase {
     $queue = $this->createNodequeue(array('page', 'story'), array(2));
 
     // create two subqueues
-    nodequeue_add_subqueue(&$queue, 'Subqueue 1');
-    nodequeue_add_subqueue(&$queue, 'Subqueue 2', 42);
+    nodequeue_add_subqueue($queue, 'Subqueue 1');
+    nodequeue_add_subqueue($queue, 'Subqueue 2', 42);
 
     $this->drupalGet('admin/content/nodequeue/'. $queue->qid .'/view');
     $this->assertText('Subqueue 1', t('Subqueue 1 is present in subqueue table.'), t('Nodequeue'));
@@ -623,7 +623,7 @@ class NodequeueAPICRUDUnitTest extends NodequeueWebTestCase {
     $queue->title = 'New title';
     $queue->size  = 5;
     $queue->link  = '';
-    $qid = nodequeue_save(&$queue);
+    $qid = nodequeue_save($queue);
     $this->assertTrue(is_numeric($qid), t('Nodequeue was updated.'), t('Nodequeue'));
     $this->assertFalse(variable_get('nodequeue_links', FALSE), t('hook_link is disabled.'), t('Nodequeue'));
 
@@ -704,16 +704,16 @@ class NodequeueAPISubqueueUnitTest extends NodequeueWebTestCase {
       $nodes[] = $this->drupalCreateNode(array('type' => 'story'));
     }
 
-    nodequeue_subqueue_add($queue, &$subqueue, $nodes[0]->nid);
+    nodequeue_subqueue_add($queue, $subqueue, $nodes[0]->nid);
     $this->assertEqual($subqueue->count, 1, t('Subqueue contains 1 element.'), t('Nodequeue'));
 
-    nodequeue_subqueue_add($queue, &$subqueue, $nodes[1]->nid);
+    nodequeue_subqueue_add($queue, $subqueue, $nodes[1]->nid);
     $this->assertEqual($subqueue->count, 2, t('Subqueue is full.'), t('Nodequeue'));
 
-    nodequeue_subqueue_add($queue, &$subqueue, $nodes[2]->nid);
+    nodequeue_subqueue_add($queue, $subqueue, $nodes[2]->nid);
     $this->assertEqual($subqueue->count, 3, t('Subqueue is full.'), t('Nodequeue'));
 
-    nodequeue_subqueue_add($queue, &$subqueue, $nodes[3]->nid);
+    nodequeue_subqueue_add($queue, $subqueue, $nodes[3]->nid);
     $this->assertEqual($subqueue->count, 3, t('Subqueue is full.'), t('Nodequeue'));
 
     $pos = nodequeue_subqueue_position($subqueue->sqid, $nodes[0]->nid);
@@ -734,20 +734,20 @@ class NodequeueAPISubqueueUnitTest extends NodequeueWebTestCase {
       $nodes[] = $this->drupalCreateNode(array('type' => 'story'));
     }
 
-    nodequeue_subqueue_add($queue, &$subqueue, $nodes[0]->nid);
+    nodequeue_subqueue_add($queue, $subqueue, $nodes[0]->nid);
     $this->assertEqual($subqueue->count, 1, t('Subqueue contains one element.'), t('Nodequeue'));
 
-    nodequeue_subqueue_add($queue, &$subqueue, $nodes[1]->nid);
+    nodequeue_subqueue_add($queue, $subqueue, $nodes[1]->nid);
     $this->assertEqual($subqueue->count, 2, t('Subqueue contains two elements.'), t('Nodequeue'));
 
-    nodequeue_subqueue_add($queue, &$subqueue, $nodes[2]->nid);
+    nodequeue_subqueue_add($queue, $subqueue, $nodes[2]->nid);
     $this->assertEqual($subqueue->count, 3, t('Subqueue is full.'), t('Nodequeue'));
 
     nodequeue_subqueue_remove($subqueue->sqid, 3);
     $count = db_result(db_query('SELECT COUNT(*) FROM {nodequeue_nodes} WHERE sqid = %d', $subqueue->sqid));
     $this->assertEqual($count, 2, t('Subqueue contains two elements.'), t('Nodequeue'));
 
-    nodequeue_subqueue_add($queue, &$subqueue, $nodes[3]->nid);
+    nodequeue_subqueue_add($queue, $subqueue, $nodes[3]->nid);
     $pos = db_result(db_query('SELECT position FROM {nodequeue_nodes} WHERE sqid = %d AND nid = %d', $subqueue->sqid, $nodes[3]->nid));
     $this->assertEqual($pos, 3, t('New element added to back of queue.'), t('Nodequeue'));
 
@@ -765,7 +765,7 @@ class NodequeueAPISubqueueUnitTest extends NodequeueWebTestCase {
     $nodes = array();
     for ($i = 0; $i < 3; $i++) {
       $node = $this->drupalCreateNode(array('type' => 'story'));
-      nodequeue_subqueue_add($queue, &$subqueue, $node->nid);
+      nodequeue_subqueue_add($queue, $subqueue, $node->nid);
       $nodes[] = $node;
     }
     $this->assertEqual($subqueue->count, 3, t('Subqueue contains three elements.'), t('Nodequeue'));
@@ -787,7 +787,7 @@ class NodequeueAPISubqueueUnitTest extends NodequeueWebTestCase {
     $nodes = array();
     for ($i = 0; $i < 3; $i++) {
       $node = $this->drupalCreateNode(array('type' => 'story'));
-      nodequeue_subqueue_add($queue, &$subqueue, $node->nid);
+      nodequeue_subqueue_add($queue, $subqueue, $node->nid);
       $nodes[] = $node;
     }
     $this->assertEqual($subqueue->count, 3, t('Subqueue contains three elements.'), t('Nodequeue'));
@@ -1065,7 +1065,7 @@ class NodequeueApacheSolrUnitTest extends NodequeueWebTestCase {
 
     $document = new stdClass();
 
-    nodequeue_apachesolr_update_index(&$document, $nodes[1]);
+    nodequeue_apachesolr_update_index($document, $nodes[1]);
 
     $this->assertEqual($document->sim_nodequeue, 1, t('Got expected key on document object.'), t('Nodequeue'));
   }
@@ -1082,7 +1082,7 @@ class NodequeueApacheSolrUnitTest extends NodequeueWebTestCase {
 
     $params = array();
 
-    nodequeue_apachesolr_modify_query('', &$params, '');
+    nodequeue_apachesolr_modify_query('', $params, '');
 
     $this->assertTrue(isset($params['bq']), t('Apachesolr bq has been set.'), t('Nodequeue'));
     $this->assertTrue(isset($params['facet.field']), t('Apachesolr facet.field has been set.'), t('Nodequeue'));
@@ -1095,7 +1095,7 @@ class NodequeueApacheSolrUnitTest extends NodequeueWebTestCase {
 
     $form = $form_state = array();
 
-    nodequeue_form_apachesolr_search_bias_form_alter(&$form, $form_state);
+    nodequeue_form_apachesolr_search_bias_form_alter($form, $form_state);
 
     $this->assertTrue(!empty($form['biasing']['nodequeue_boost']), t('Nodequeue boost fieldset exists.'), t('Nodequeue'));
   }
