@@ -988,6 +988,7 @@ class NodequeueAPIMiscUnitTest extends NodequeueWebTestCase {
     $subqueues = nodequeue_load_subqueues_by_queue($queue->qid);
     $subqueue = array_shift($subqueues);
 
+    module_load_include('inc', 'nodequeue', 'includes/nodequeue.admin');
     $rv = _nodequeue_autocomplete(0, '');
     $this->assertTrue(empty($rv), t('No sqid. No nodes returned.'), t('Nodequeue'));
 
