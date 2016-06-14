@@ -2045,19 +2045,21 @@ function nodequeue_api_autocomplete($queue, $subqueue, $string) {
     $query->where('LOWER(n.title) LIKE LOWER(:string)', array(':string' => '%' . db_like($string) . '%'));
   }
 
-  // Call to the API.
-  $function = $queue->owner . "_nodequeue_autocomplete";
-  if (function_exists($function)) {
-    return $function($queue, $subqueue, $string, $query);
-  }
-  else {
-    $query->addTag('i18n_select');
-    $result = $query->execute();
+  $query->addMetaData('queue', $queue);
+  $query->addMetaData('subqueue', $subqueue);
+  $query->addTag('nodequeue_api_autocomplete');
+  $query->addTag('i18n_select');
+  $result = $query->execute();
 
-    foreach ($result as $node) {
-      $id = nodequeue_get_content_id($queue, $node);
-      $matches[$node->nid] = check_plain($node->title) . " [nid: $id]";
-    }
+  // Call to hook_nodequeue_api_autocomplete.
+  $matches = module_invoke_all('nodequeue_api_autocomplete', $queue, $subqueue, $string, $result);
+  if (!empty($matches)) {
+    return $matches;
+  }
+
+  foreach ($result as $node) {
+    $id = nodequeue_get_content_id($queue, $node);
+    $matches[$node->nid] = check_plain($node->title) . " [nid: $id]";
   }
 
   return $matches;
