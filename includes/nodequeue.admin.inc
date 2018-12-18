@@ -925,6 +925,13 @@ function nodequeue_arrange_subqueue_form_submit($form, &$form_state, $reverse = 
 }
 
 /**
+ * Callback for array_walk() to serialize sub-queues.
+ */
+function _nodequeue_serialize_node(&$node) {
+  $node = serialize($node);
+}
+
+/**
  * Validates new subqueue order information and if it passes validation,
  * deletes the old subqueue data from the database and saves the new data.
  *
@@ -967,7 +974,7 @@ function nodequeue_save_subqueue_order($nodes, $qid, $sqid) {
   }
   $nodes = $clean;
 
-  array_walk($clean, create_function('&$node', '$node = serialize($node);'));
+  array_walk($clean, '_nodequeue_serialize_node');
 
   if (count(array_unique($clean)) < count($nodes)) {
     return array(NODEQUEUE_DUPLICATE_POSITION, 'Duplicate position values are not allowed. New subqueue order not saved.');

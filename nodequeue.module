@@ -491,7 +491,7 @@ class nodequeue_queue {
 
   var $current = NULL;
 
-  function nodequeue_queue($type) {
+  function __construct($type) {
     $this->owner = $type;
   }
 }
