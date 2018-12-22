@@ -4,9 +4,3 @@ package = Nodequeue
 core = 6.x
 dependencies[] = nodequeue 
 dependencies[] = taxonomy
-
-; Information added by Drupal 6 LTS vendors on 2018-12-22
-version = "6.x-2.12"
-core = "6.x"
-project = "nodequeue"
-datestamp = "1545507221"
